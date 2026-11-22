@@ -69,6 +69,19 @@ categories:
       - "オンプレミスとの接続：すぐ・安く → Site-to-Site VPN、安定した帯域 → Direct Connect。"
       - "コンテンツをキャッシュして配信 → CloudFront、キャッシュせず経路を速く・固定 IP → Global Accelerator。"
       - "VPC がたくさん → Transit Gateway（少数なら VPC ピアリング）。"
+      - "オンプレミス → VPC の名前解決は VPC Resolver のインバウンドエンドポイント、VPC → オンプレミスはアウトバウンドエンドポイント＋転送ルール。"
+    usecases:
+      - title: オンプレミスと VPC の間で名前解決する（ハイブリッド DNS）
+        need: 社内のサーバーから VPC 内のプライベートなドメイン名を引きたい。VPC 内の EC2 からも社内のドメイン名（corp.example.com）を引きたい
+        flow:
+          - {label: 社内のサーバー・DNS サーバー, icon: general/traditional-server}
+          - {svc: direct-connect, note: 専用線か VPN でつなぐ}
+          - {svc: route53-vpc-resolver, note: インバウンド（社内 → VPC）／アウトバウンド（VPC → 社内）エンドポイント}
+          - [{svc: route53, note: プライベートホストゾーン（VPC 内の名前）}, {svc: ec2, note: VPC 内のサーバー}]
+        why:
+          - 社内の DNS サーバーは、VPC 内の名前の問い合わせをインバウンドエンドポイントの IP アドレスに転送する
+          - VPC 内からの社内ドメインの問い合わせは、アウトバウンドエンドポイントと転送ルールで社内の DNS サーバーへ送る
+          - 転送ルールは Resource Access Manager で他のアカウントの VPC と共有できる。名前解決のために DNS サーバーを EC2 で自作する必要はない
   security:
     label: セキュリティ・ID・コンプライアンス
     columns: ["種類", "対象"]
@@ -532,6 +545,16 @@ services:
     attrs: {"役割": "DNS", "つなぐもの・対象": "ドメイン名 → IP アドレス・リソース"}
     keywords: [DNS, フェイルオーバールーティング, 加重ルーティング, レイテンシールーティング, 位置情報ルーティング]
     tags: [頻出]
+  - id: route53-vpc-resolver
+    name: Amazon Route 53 VPC Resolver
+    short: 旧 Route 53 Resolver
+    category: network
+    icon: network/route-53
+    summary: すべての VPC に最初から用意されている DNS リゾルバー。エンドポイントと転送ルールで、オンプレミスとの間の名前解決もできる。
+    use_when: "オンプレミスと VPC の間で、お互いのドメイン名を名前解決したいとき"
+    attrs: {"役割": "名前解決（DNS リゾルバー）", "つなぐもの・対象": "VPC 内のリソース ⇔ オンプレミスの DNS"}
+    keywords: [ハイブリッド DNS, インバウンドエンドポイント, アウトバウンドエンドポイント, 転送ルール, DNS Firewall, クエリログ, VPC+2]
+    compare: Route 53 のホストゾーンは「名前の登録先」、VPC Resolver は「名前を問い合わせて答えを探す側」。
   - id: cloudfront
     name: Amazon CloudFront
     category: network
