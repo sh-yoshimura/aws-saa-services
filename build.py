@@ -216,37 +216,33 @@ def compare_block(cat: dict, items: list[dict]) -> str:
     return "".join(parts)
 
 
-def usecase_block(key: str, cat: dict, by_id: dict) -> str:
-    if not cat["usecases"]:
-        return ""
-    out = ['<div class="usecases"><h3 class="uc-head">ユースケース（サービスの組み合わせ）</h3><div class="uc-list">']
-    for i, uc in enumerate(cat["usecases"], 1):
-        stages, words = [], [uc["title"], uc.get("need", ""), *(uc.get("why") or [])]
-        for st in flow_stages(uc):
-            nodes = []
-            for n in st:
-                svc = by_id.get(n.get("svc"))
-                name = n.get("label") or svc["name"]
-                key = n.get("icon") or (svc["icon"] if svc else "general/general")
-                words += [name, n.get("note", "")]
-                inner = f'{icon_el(key, "mini")}<span class="nm">{e(name)}</span>'
-                if n.get("note"):
-                    inner += f'<span class="note">{e(n["note"])}</span>'
-                if svc:
-                    nodes.append(f'<a class="node" href="services/{e(svc["id"])}.html">{inner}</a>')
-                else:
-                    nodes.append(f'<div class="node ext">{inner}</div>')
-            stages.append(f'<div class="stage">{"".join(nodes)}</div>')
-        arrow = '<span class="arrow" aria-hidden="true"></span>'
-        out.append(f'<article class="uc" id="uc-{e(key)}-{i}" data-search="{e(" ".join(words).lower())}">')
-        out.append(f'<h4>{e(uc["title"])}</h4>')
-        if uc.get("need"):
-            out.append(f'<p class="need"><b>要件</b>{e(uc["need"])}</p>')
-        out.append(f'<div class="flow" aria-label="処理の流れ">{arrow.join(stages)}</div>')
-        if uc.get("why"):
-            out.append('<ul class="why">' + "".join(f"<li>{e(w)}</li>" for w in uc["why"]) + "</ul>")
-        out.append("</article>")
-    out.append("</div></div>")
+def render_usecase(uc: dict, by_id: dict, current: str) -> str:
+    """詳細ページに出す 1 件分のユースケース。current のサービスは流れ図の中で強調する。"""
+    stages = []
+    for st in flow_stages(uc):
+        nodes = []
+        for n in st:
+            svc = by_id.get(n.get("svc"))
+            name = n.get("label") or svc["name"]
+            key = n.get("icon") or (svc["icon"] if svc else "general/general")
+            inner = f'{icon_el(key, "mini")}<span class="nm">{e(name)}</span>'
+            if n.get("note"):
+                inner += f'<span class="note">{e(n["note"])}</span>'
+            if svc and svc["id"] == current:
+                nodes.append(f'<div class="node here" aria-current="page">{inner}</div>')
+            elif svc:
+                nodes.append(f'<a class="node" href="{e(svc["id"])}.html">{inner}</a>')
+            else:
+                nodes.append(f'<div class="node ext">{inner}</div>')
+        stages.append(f'<div class="stage">{"".join(nodes)}</div>')
+    arrow = '<span class="arrow" aria-hidden="true"></span>'
+    out = ['<article class="uc">', f'<h3>{e(uc["title"])}</h3>']
+    if uc.get("need"):
+        out.append(f'<p class="need"><b>要件</b>{e(uc["need"])}</p>')
+    out.append(f'<div class="flow" aria-label="処理の流れ">{arrow.join(stages)}</div>')
+    if uc.get("why"):
+        out.append('<ul class="why">' + "".join(f"<li>{e(w)}</li>" for w in uc["why"]) + "</ul>")
+    out.append("</article>")
     return "".join(out)
 
 
@@ -289,14 +285,11 @@ def detail_page(s: dict, cats: dict, services: list[dict], by_id: dict) -> str:
     else:
         body = f'<p class="pending">詳しい解説はまだありません。details/{e(sid)}.md を作ると、ここに表示されます。</p>'
 
-    ucs = []
-    for k, c in cats.items():
-        for i, uc in enumerate(c["usecases"], 1):
-            if any(n.get("svc") == sid for n in flow_nodes(uc)):
-                ucs.append(
-                    f'<li><a href="../index.html#uc-{e(k)}-{i}"><b>{e(uc["title"])}</b>'
-                    f'<span>{e(uc.get("need", ""))}</span></a></li>'
-                )
+    ucs = [
+        render_usecase(uc, by_id, sid)
+        for c in cats.values() for uc in c["usecases"]
+        if any(n.get("svc") == sid for n in flow_nodes(uc))
+    ]
     current = ' aria-current="page"'
     sibs = "".join(
         f'<a class="sib" href="{e(o["id"])}.html"{current if o["id"] == sid else ""}>'
@@ -313,7 +306,8 @@ def detail_page(s: dict, cats: dict, services: list[dict], by_id: dict) -> str:
 
     hero_icon = icon_el(s["icon"], "icon")
     uc_html = (
-        '<section><h2>このサービスが出てくるユースケース</h2><ul class="uc-links">' + "".join(ucs) + "</ul></section>"
+        '<section class="usecases"><h2>ユースケース（サービスの組み合わせ）</h2>'
+        f'<div class="uc-list">{"".join(ucs)}</div></section>'
         if ucs else ""
     )
     content = f"""
@@ -324,8 +318,8 @@ def detail_page(s: dict, cats: dict, services: list[dict], by_id: dict) -> str:
 <p class="lead">{e(s["summary"])}</p>
 <dl class="facts">{facts_html}</dl>
 <article class="article">{body}</article>
-<div class="related">
 {uc_html}
+<div class="related">
 <section><h2>{e(cat["label"])}のサービス</h2><div class="siblings">{sibs}</div></section>
 </div>
 <nav class="pager" aria-label="前後のサービス">{pager}</nav>"""
@@ -367,7 +361,6 @@ def build(artifact: bool = False) -> None:
             f'<section class="cat" data-cat="{e(key)}" id="cat-{e(key)}">'
             f'<h2><span>{e(label)}</span><span class="count">{len(items)}</span></h2>'
             f'{compare_block(cat, items)}'
-            f'{usecase_block(key, cat, by_id)}'
             f'<div class="grid">{cards}</div></section>'
         )
     icon_styles = "\n".join(filter(None, (icon_css(k) for k in sorted(USED_ICONS))))

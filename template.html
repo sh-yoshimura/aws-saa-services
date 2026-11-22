@@ -128,53 +128,6 @@ main { padding-block: 8px 48px; display: flex; flex-direction: column; gap: 36px
 .cmp .use-cell { min-width: 18em; }
 .cmp tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
 
-/* ---- ユースケース ---- */
-.uc-head {
-  font-family: var(--font-display); font-size: 14px; font-weight: 700; margin: 0 0 8px;
-  color: var(--accent); letter-spacing: .04em;
-}
-.uc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 12px; }
-.uc {
-  min-width: 0; display: flex; flex-direction: column; gap: 10px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
-}
-.uc h4 { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin: 0; line-height: 1.4; text-wrap: balance; }
-.need { margin: 0; font-size: 14px; }
-.need b {
-  font-size: 11px; color: var(--fg); border: 1px solid var(--line); border-radius: 4px;
-  padding: 0 5px; margin-right: 6px;
-}
-.flow {
-  display: flex; align-items: center; gap: 4px; overflow-x: auto;
-  background: var(--bg); border-radius: 8px; padding: 10px;
-}
-.stage { flex: none; display: flex; flex-direction: column; gap: 6px; }
-.node {
-  width: 8.6em; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  text-align: center; color: var(--fg); text-decoration: none;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 6px;
-}
-.node.ext { border-style: dashed; }
-a.node:hover { border-color: var(--accent); }
-a.node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.node .mini { width: 32px; height: 32px; background-color: transparent; }
-.node .nm { font-size: 12.5px; font-weight: 700; line-height: 1.35; }
-.node .note { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
-.arrow { flex: none; width: 18px; height: 2px; background: var(--muted); position: relative; }
-.arrow::after {
-  content: ""; position: absolute; right: -1px; top: -4px;
-  border: 5px solid transparent; border-left: 7px solid var(--muted); border-right: 0;
-}
-.why { margin: 0; padding-left: 1.2em; font-size: 13.5px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
-.why li::marker { color: var(--accent); }
-@media (max-width: 560px) {
-  .flow { flex-direction: column; align-items: stretch; overflow-x: visible; }
-  .stage { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  .node { width: auto; flex: 1 1 7.5em; }
-  .arrow { align-self: center; width: 2px; height: 14px; }
-  .arrow::after { right: -4px; top: auto; bottom: -2px; border: 5px solid transparent; border-top: 7px solid var(--muted); border-bottom: 0; }
-}
-
 /* ---- 表示の切り替え ---- */
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .seg button {
@@ -185,11 +138,10 @@ a.node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .seg button[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
 .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .view-table .grid { display: none; }
-.view-cards .compare-block, .view-cards .usecases { display: none; }
+.view-cards .compare-block { display: none; }
 
 /* ---- 暗記モード：名前を隠し、クリックで表示 ---- */
-.quiz .card, .quiz .cmp tbody tr, .quiz .uc { cursor: pointer; }
-.quiz .uc:not(.open) .node .nm { color: transparent; background: var(--line); border-radius: 4px; user-select: none; }
+.quiz .card, .quiz .cmp tbody tr { cursor: pointer; }
 .quiz .card:not(.open) .name,
 .quiz .card:not(.open) .short,
 .quiz .cmp tr:not(.open) .name {
@@ -211,7 +163,7 @@ footer { color: var(--muted); font-size: 12.5px; padding-block: 0 32px; }
   <div class="wrap">
     <div class="eyebrow">SAA-C03 · {{TOTAL}} services</div>
     <h1>AWS サービス図鑑</h1>
-    <p>主要サービスのアイコン・正式名称・基本機能と、試験で出るキーワードの一覧です。カテゴリごとに、サービスの比較表と使い分けのポイントを載せています。アプリケーション統合とマネジメント・ガバナンスには、サービスの組み合わせ方のユースケースもあります。「名前を隠す」をオンにすると、アイコンと説明から名前を当てる暗記カードになります。</p>
+    <p>主要サービスのアイコン・正式名称・基本機能と、試験で出るキーワードの一覧です。カテゴリごとに、サービスの比較表と使い分けのポイントを載せています。サービス名を押すと、詳しい解説とユースケース（サービスの組み合わせ）を載せた詳細ページが開きます。「名前を隠す」をオンにすると、アイコンと説明から名前を当てる暗記カードになります。</p>
   </div>
 </header>
 
@@ -253,7 +205,6 @@ footer { color: var(--muted); font-size: 12.5px; padding-block: 0 32px; }
   const sections = [...document.querySelectorAll("section.cat")];
   const cards = [...document.querySelectorAll(".card")];
   const rows = [...document.querySelectorAll(".cmp tbody tr")];
-  const ucs = [...document.querySelectorAll(".uc")];
   const views = [...document.querySelectorAll(".seg button")];
   let cat = "";
 
@@ -273,15 +224,10 @@ footer { color: var(--muted); font-size: 12.5px; padding-block: 0 32px; }
         c.hidden = !ok;
         if (ok) n++;
       }
-      for (const u of s.querySelectorAll(".uc")) {
-        u.hidden = !(catOk && terms.every(t => u.dataset.search.includes(t)));
-      }
-      const ucBox = s.querySelector(".usecases");
-      if (ucBox) ucBox.hidden = !s.querySelector(".uc:not([hidden])");
       for (const r of s.querySelectorAll(".cmp tbody tr")) {
         r.hidden = document.getElementById(r.dataset.for).hidden;
       }
-      s.hidden = n === 0 && !s.querySelector(".uc:not([hidden])");
+      s.hidden = n === 0;
       shown += n;
     }
     hits.textContent = `${shown} / ${cards.length} 件`;
@@ -306,7 +252,6 @@ footer { color: var(--muted); font-size: 12.5px; padding-block: 0 32px; }
   function setQuiz() {
     document.body.classList.toggle("quiz", quiz.checked);
     rows.forEach(r => r.classList.remove("open"));
-    ucs.forEach(u => u.classList.remove("open"));
     cards.forEach(c => {
       c.classList.remove("open");
       if (quiz.checked) c.tabIndex = 0; else c.removeAttribute("tabindex");
@@ -334,12 +279,6 @@ footer { color: var(--muted); font-size: 12.5px; padding-block: 0 32px; }
     if (!quiz.checked) return;
     if (!r.classList.contains("open")) ev.preventDefault();
     r.classList.toggle("open");
-  }));
-
-  ucs.forEach(u => u.addEventListener("click", ev => {
-    if (!quiz.checked) return;
-    if (!u.classList.contains("open")) ev.preventDefault();
-    u.classList.toggle("open");
   }));
 
   setView(["table", "cards"].includes(store.get("svc-view")) ? store.get("svc-view") : "both");
