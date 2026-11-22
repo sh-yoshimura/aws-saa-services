@@ -65,6 +65,7 @@ def normalize_categories(raw: dict) -> dict:
             "label": v.get("label", key),
             "columns": v.get("columns") or [],
             "points": v.get("points") or [],
+            "usecases": v.get("usecases") or [],
         }
     return cats
 
@@ -85,28 +86,60 @@ def validate(data: dict, cats: dict) -> list[str]:
             unknown = set(s["attrs"]) - set(cats[s["category"]]["columns"])
             if unknown:
                 errors.append(f"{label}: attrs の {sorted(unknown)} がカテゴリの columns にありません")
+    for key, cat in cats.items():
+        for uc in cat["usecases"]:
+            where = f"{key} のユースケース「{uc.get('title', '?')}」"
+            if not uc.get("title") or not uc.get("flow"):
+                errors.append(f"{where}: title と flow が必要です")
+            for node in flow_nodes(uc):
+                if node.get("svc") and node["svc"] not in seen:
+                    errors.append(f"{where}: svc '{node['svc']}' が services にありません")
+                elif not node.get("svc") and not node.get("label"):
+                    errors.append(f"{where}: 各ステップには svc か label が必要です")
     return errors
+
+
+def as_node(n) -> dict:
+    """flow の 1 要素。文字列ならサービスの id とみなす。"""
+    return {"svc": n} if isinstance(n, str) else dict(n)
+
+
+def flow_stages(uc: dict) -> list[list[dict]]:
+    """flow の各段は 1 つのノードか、同時に動くノードのリスト。"""
+    return [[as_node(n) for n in (st if isinstance(st, list) else [st])] for st in uc.get("flow") or []]
+
+
+def flow_nodes(uc: dict) -> list[dict]:
+    return [n for st in flow_stages(uc) for n in st]
 
 
 def e(text) -> str:
     return html.escape(str(text), quote=True)
 
 
-def icon_css(s: dict) -> str:
-    icon = resolve_icon(s["icon"])
+USED_ICONS: set[str] = set()
+
+
+def icon_class(key: str) -> str:
+    return "i-" + key.replace("/", "--")
+
+
+def icon_css(key: str) -> str:
+    icon = resolve_icon(key)
     if not icon:
-        print(f"警告: {s['id']} のアイコン '{s['icon']}' が見つかりません", file=sys.stderr)
+        print(f"警告: アイコン '{key}' が見つかりません", file=sys.stderr)
         return ""
     b64 = base64.b64encode(icon.read_bytes()).decode()
-    return f'.i-{s["id"]}{{background-image:url(data:image/png;base64,{b64})}}'
+    return f'.{icon_class(key)}{{background-image:url(data:image/png;base64,{b64})}}'
 
 
-def icon_el(s: dict, cls: str) -> str:
-    return f'<span class="{cls} i-{e(s["id"])}" aria-hidden="true"></span>'
+def icon_el(key: str, cls: str) -> str:
+    USED_ICONS.add(key)
+    return f'<span class="{cls} {e(icon_class(key))}" aria-hidden="true"></span>'
 
 
 def card(s: dict) -> str:
-    img = icon_el(s, "icon")
+    img = icon_el(s["icon"], "icon")
 
     keywords = s.get("keywords") or []
     tags = s.get("tags") or []
@@ -148,7 +181,7 @@ def compare_block(cat: dict, items: list[dict]) -> str:
         cells = "".join(f"<td>{e(attrs.get(c, '—'))}</td>" for c in cat["columns"])
         rows.append(
             f'<tr data-for="svc-{e(s["id"])}">'
-            f'<th scope="row"><a class="svc" href="#svc-{e(s["id"])}">{icon_el(s, "mini")}'
+            f'<th scope="row"><a class="svc" href="#svc-{e(s["id"])}">{icon_el(s["icon"], "mini")}'
             f'<span class="name">{e(s["name"])}</span></a></th>'
             f'{cells}<td class="use-cell">{e(s.get("use_when", "—"))}</td></tr>'
         )
@@ -163,6 +196,40 @@ def compare_block(cat: dict, items: list[dict]) -> str:
     return "".join(parts)
 
 
+def usecase_block(cat: dict, by_id: dict) -> str:
+    if not cat["usecases"]:
+        return ""
+    out = ['<div class="usecases"><h3 class="uc-head">ユースケース（サービスの組み合わせ）</h3><div class="uc-list">']
+    for uc in cat["usecases"]:
+        stages, words = [], [uc["title"], uc.get("need", ""), *(uc.get("why") or [])]
+        for st in flow_stages(uc):
+            nodes = []
+            for n in st:
+                svc = by_id.get(n.get("svc"))
+                name = n.get("label") or svc["name"]
+                key = n.get("icon") or (svc["icon"] if svc else "general/general")
+                words += [name, n.get("note", "")]
+                inner = f'{icon_el(key, "mini")}<span class="nm">{e(name)}</span>'
+                if n.get("note"):
+                    inner += f'<span class="note">{e(n["note"])}</span>'
+                if svc:
+                    nodes.append(f'<a class="node" href="#svc-{e(svc["id"])}">{inner}</a>')
+                else:
+                    nodes.append(f'<div class="node ext">{inner}</div>')
+            stages.append(f'<div class="stage">{"".join(nodes)}</div>')
+        arrow = '<span class="arrow" aria-hidden="true"></span>'
+        out.append(f'<article class="uc" data-search="{e(" ".join(words).lower())}">')
+        out.append(f'<h4>{e(uc["title"])}</h4>')
+        if uc.get("need"):
+            out.append(f'<p class="need"><b>要件</b>{e(uc["need"])}</p>')
+        out.append(f'<div class="flow" aria-label="処理の流れ">{arrow.join(stages)}</div>')
+        if uc.get("why"):
+            out.append('<ul class="why">' + "".join(f"<li>{e(w)}</li>" for w in uc["why"]) + "</ul>")
+        out.append("</article>")
+    out.append("</div></div>")
+    return "".join(out)
+
+
 def build() -> None:
     data = yaml.safe_load(DATA.read_text(encoding="utf-8"))
     cats = normalize_categories(data.get("categories"))
@@ -171,6 +238,7 @@ def build() -> None:
         sys.exit("services.yaml にエラーがあります:\n  " + "\n  ".join(errors))
 
     services = data["services"]
+    by_id = {s["id"]: s for s in services}
     sections, nav = [], []
     for key, cat in cats.items():
         label = cat["label"]
@@ -186,9 +254,10 @@ def build() -> None:
             f'<section class="cat" data-cat="{e(key)}" id="cat-{e(key)}">'
             f'<h2><span>{e(label)}</span><span class="count">{len(items)}</span></h2>'
             f'{compare_block(cat, items)}'
+            f'{usecase_block(cat, by_id)}'
             f'<div class="grid">{cards}</div></section>'
         )
-    icon_styles = "\n".join(filter(None, (icon_css(s) for s in services)))
+    icon_styles = "\n".join(filter(None, (icon_css(k) for k in sorted(USED_ICONS))))
 
     page = (
         TEMPLATE.read_text(encoding="utf-8")
@@ -198,7 +267,8 @@ def build() -> None:
         .replace("/*{{ICON_CSS}}*/", icon_styles)
     )
     OUT.write_text(page, encoding="utf-8")
-    print(f"{OUT.name} を作りました（{len(services)} サービス / {len(nav)} カテゴリ）")
+    n_uc = sum(len(c["usecases"]) for c in cats.values())
+    print(f"{OUT.name} を作りました（{len(services)} サービス / {len(nav)} カテゴリ / ユースケース {n_uc}）")
 
 
 if __name__ == "__main__":

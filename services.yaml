@@ -25,6 +25,13 @@
 #   columns : 比較表の列（サービス名と「どういうときに使うか」の列は自動で付く）
 #   points  : 使い分けのポイント（任意。試験での判断ルールを 1 行ずつ）
 #   カテゴリに属するサービスは、すべて自動で比較表の行になる
+#   usecases: ユースケース（任意）。サービスの組み合わせを流れ図で見せる
+#     - title: 見出し
+#       need : 要件（試験の問題文のような「〜したい」）
+#       flow : 左から順に並ぶ段。各段は 1 つのノードか、同時に動くノードのリスト [..., ...]
+#              ノードは {svc: サービスの id, note: その段での役割}
+#              AWS 以外は {label: 利用者, icon: general/users, note: ...}
+#       why  : この組み合わせにする理由・試験での注意点（1 行ずつ）
 
 categories:
   compute:
@@ -77,12 +84,129 @@ categories:
       - "「疎結合」「非同期」「バッファ」→ SQS、「複数の宛先へ同時に」→ SNS（SNS + SQS でファンアウト）。"
       - "処理の順番や分岐を管理 → Step Functions、イベントやスケジュールで起動 → EventBridge。"
       - "既存の ActiveMQ / RabbitMQ をそのまま移す → Amazon MQ。"
+    usecases:
+      - title: 注文の受付と処理を切り離す（疎結合）
+        need: セールで注文が急増しても取りこぼさず、処理側が止まっても受付は続けたい
+        flow:
+          - {label: 利用者, icon: general/users}
+          - {svc: elb, note: 通信を振り分ける}
+          - {svc: ec2-auto-scaling, note: Web 層（注文を受け付ける）}
+          - {svc: sqs, note: 注文をためておく}
+          - {svc: ec2-auto-scaling, note: 処理層（キューの長さで台数を増減）}
+        why:
+          - Web 層は SQS に入れた時点で応答できるので、処理が遅れても受付は止まらない
+          - 処理層は、キューにたまったメッセージ数を指標にして Auto Scaling する
+          - 何度処理しても失敗するメッセージは、デッドレターキューに退避して原因を調べる
+      - title: 1 つのイベントを複数の処理へ配る（ファンアウト）
+        need: 注文が確定したら、在庫の引き当て・配送の手配・確認メールを同時に、互いに影響せず実行したい
+        flow:
+          - {label: 注文アプリ, icon: general/traditional-server}
+          - {svc: sns, note: 「注文確定」を発行}
+          - [{svc: sqs, note: 在庫処理用のキュー}, {svc: sqs, note: 配送処理用のキュー}, {svc: lambda, note: 確認メールを送る}]
+        why:
+          - SNS は届けるだけなので、間に SQS を入れると受信側が止まっていてもメッセージが消えない
+          - 処理を増やすときは SNS に購読者を足すだけで、送信側のアプリは変えなくてよい
+          - 「SNS + SQS でファンアウト」は試験で頻出の組み合わせ
+      - title: ファイルが届いたら自動で処理する（イベント駆動）
+        need: S3 に画像がアップロードされたら、サーバーを管理せずにサムネイルを作りたい
+        flow:
+          - {label: 利用者, icon: general/users}
+          - {svc: s3, note: 画像をアップロード}
+          - {svc: eventbridge, note: 「オブジェクト作成」を検知}
+          - {svc: lambda, note: サムネイルを作る}
+          - {svc: s3, note: 別のバケットに保存}
+        why:
+          - S3 のイベント通知から Lambda を直接呼んでもよい。EventBridge を挟むと、条件での絞り込みや複数の宛先への振り分けがしやすい
+          - 同じバケットの同じ場所に書き戻すと、またイベントが起きて処理が繰り返されるので、保存先は分ける
+          - 処理が重い・15 分を超えるなら、Lambda の代わりに ECS（Fargate）や AWS Batch を使う
+      - title: 毎晩のデータ処理を順番に実行し、失敗を知らせる
+        need: 毎晩 1 時に「抽出 → 変換」を順番に実行し、失敗したら担当者にメールで知らせたい
+        flow:
+          - {svc: eventbridge, note: 毎日 1 時に起動（スケジュール）}
+          - {svc: step-functions, note: 順番・リトライ・失敗時の分岐を管理}
+          - {svc: lambda, note: データを抽出}
+          - {svc: glue, note: データを変換}
+          - {svc: sns, note: 失敗したらメール}
+        why:
+          - cron 用のサーバーを置かずに、EventBridge のスケジュールで起動できる
+          - 処理同士をつなぐコード（リトライや分岐）を自分で書かず、Step Functions に任せる
+          - 失敗時は Step Functions の中でエラーを捕まえて、SNS で通知する
+      - title: 既存のメッセージ基盤をそのまま移す
+        need: オンプレミスで ActiveMQ を使っているアプリを、コードをほとんど変えずに AWS へ移したい
+        flow:
+          - {label: オンプレミスのアプリ, icon: general/traditional-server}
+          - {svc: mq, note: ActiveMQ 互換のブローカー}
+          - {svc: ec2, note: AWS へ移したアプリ}
+        why:
+          - JMS・AMQP・MQTT などのプロトコルがそのまま使えるので、アプリの書き換えが少ない
+          - 新しく作るアプリなら、運用が楽でスケールしやすい SQS / SNS を選ぶ
+          - 「既存の」「書き換えずに」「業界標準のプロトコル」が Amazon MQ を選ぶ決め手
   management:
     label: マネジメント・ガバナンス
     columns: ["分かること・できること", "試験での問われ方"]
     points:
       - "監視（性能）→ CloudWatch、操作の記録（誰が）→ CloudTrail、設定の記録（どう変わったか）→ Config。"
       - "複数アカウントの統制 → Organizations（SCP）、その環境づくりを自動で → Control Tower。"
+    usecases:
+      - title: CPU 使用率が上がったら通知し、台数を増やす
+        need: Web サーバーの CPU 使用率が 70% を超えたら、担当者に知らせて自動でサーバーを増やしたい
+        flow:
+          - {svc: ec2, note: メトリクスを送る}
+          - {svc: cloudwatch, note: アラームが 70% 超えを検知}
+          - [{svc: sns, note: 担当者にメール}, {svc: ec2-auto-scaling, note: 台数を増やす}]
+        why:
+          - CloudWatch アラームのアクションに、SNS の通知と Auto Scaling のポリシーを両方設定できる
+          - メモリやディスクの使用率は標準では取れない。CloudWatch エージェントを入れてカスタムメトリクスとして送る
+          - 台数の調整だけなら、ターゲット追跡スケーリング（例：CPU 50% を保つ）が一番手間が少ない
+      - title: 操作の記録を残し、重要な操作をすぐ知らせる
+        need: 誰がいつ何をしたかを長期間残し、ルートユーザーのログインなどの重要な操作はすぐに知りたい
+        flow:
+          - {svc: cloudtrail, note: 全リージョンの API 操作を記録}
+          - [{svc: s3, note: ログを長期保存}, {svc: eventbridge, note: 重要な操作を検知}]
+          - {svc: sns, note: EventBridge から担当者に通知}
+        why:
+          - ログを S3 に保存し、ライフサイクルで S3 Glacier に移すと長期保存が安くなる
+          - 改ざんを防ぐには、CloudTrail のログファイルの整合性検証や、S3 オブジェクトロックを使う
+          - 保存したログを SQL で調べたいときは Athena
+      - title: ルール違反の設定を見つけて自動で直す
+        need: セキュリティグループで SSH（22 番ポート）が全開放されたら、検出して自動で閉じたい
+        flow:
+          - {label: 運用者が設定を変更, icon: general/user}
+          - {svc: config, note: ルールで違反を検出}
+          - [{svc: systems-manager, note: Automation で自動修復}, {svc: sns, note: 違反を通知}]
+        why:
+          - AWS Config のルールで準拠・非準拠を評価し、修復アクションに Systems Manager Automation を指定できる
+          - 設定が「どう変わったか」の履歴は Config、「誰が変えたか」は CloudTrail で見る
+          - 複数のアカウントにまとめて適用するなら、Organizations と組み合わせる
+      - title: 複数のアカウントをまとめて統制する
+        need: 部署ごとにアカウントを分けつつ、ログイン方法・ログ・禁止事項は全社で統一したい
+        flow:
+          - {svc: control-tower, note: マルチアカウント環境を構築}
+          - {svc: organizations, note: OU と SCP で使える範囲を制限}
+          - [{svc: iam-identity-center, note: 1 つの ID で各アカウントへ}, {svc: cloudtrail, note: 全アカウントの操作を記録}, {svc: config, note: 全アカウントの設定を評価}]
+        why:
+          - SCP は「そのアカウントで使える上限」を決めるもので、権限を与えるものではない（許可は IAM で行う）
+          - ログはログ保管専用のアカウントの S3 に集めるのが定番
+          - これから作るなら Control Tower で一式を自動で用意できる
+      - title: サーバーのパッチ適用とログインを安全にする
+        need: 数百台の EC2 に毎月パッチを当てたい。SSH のポートは開けず、踏み台サーバーもなくしたい
+        flow:
+          - {svc: systems-manager, note: Patch Manager・Session Manager}
+          - {svc: ec2, note: SSM エージェントで管理される}
+          - {svc: cloudwatch, note: 操作ログを保存（CloudWatch Logs）}
+        why:
+          - Session Manager なら 22 番ポートも踏み台も要らず、操作ログも残せる
+          - EC2 には SSM エージェントと、Systems Manager を使うための IAM ロールが必要
+          - プライベートサブネットのサーバーは、NAT ゲートウェイか VPC エンドポイント経由で Systems Manager と通信する
+      - title: 同じ環境を別のリージョンにも作る
+        need: 東京リージョンと同じ構成を、災害対策として大阪リージョンにも手作業なしで用意したい
+        flow:
+          - {svc: cloudformation, note: テンプレートからスタックを作成}
+          - [{svc: vpc, note: 大阪リージョンに同じ構成}, {svc: ec2-auto-scaling, note: 大阪リージョンに同じ構成}, {svc: rds, note: 大阪リージョンに同じ構成}]
+        why:
+          - テンプレートを使い回せるので、手作業のミスなく同じ環境を何度でも作れる
+          - 複数のアカウントやリージョンへ一度に展開するなら StackSets
+          - 変更する前に影響を確かめたいときは、変更セットを使う
   analytics:
     label: 分析
     columns: ["処理のタイミング", "主な役割"]
