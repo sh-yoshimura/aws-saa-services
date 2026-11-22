@@ -1,0 +1,319 @@
+<title>AWS サービス図鑑</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Kaku+Gothic+New:wght@700;900&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: 学習用の参照カード。上に固定の検索・絞り込みバー、下にカテゴリごとのカードグリッド */
+:root {
+  --bg: #f3f6f7;
+  --surface: #ffffff;
+  --fg: #18242e;
+  --muted: #5a6a77;
+  --line: #d9e1e6;
+  --accent: #0d6b76;
+  --accent-soft: #e3f0f1;
+  --hot: #a8501c;
+  --hot-soft: #fbece2;
+  --font-display: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-body: "BIZ UDPGothic", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121a20; --surface: #1a252d; --fg: #e4ebef; --muted: #98a8b3; --line: #2c3a44;
+    --accent: #5cc3cd; --accent-soft: #1d3a40; --hot: #f0a374; --hot-soft: #3d2a1f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121a20; --surface: #1a252d; --fg: #e4ebef; --muted: #98a8b3; --line: #2c3a44;
+  --accent: #5cc3cd; --accent-soft: #1d3a40; --hot: #f0a374; --hot-soft: #3d2a1f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.7;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---- ヘッダー ---- */
+.masthead { padding-block: 32px 20px; }
+.masthead .eyebrow {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em;
+  color: var(--accent); text-transform: uppercase;
+}
+.masthead h1 {
+  font-family: var(--font-display); font-weight: 900; font-size: clamp(26px, 4vw, 36px);
+  line-height: 1.25; margin: 4px 0 8px; text-wrap: balance;
+}
+.masthead p { margin: 0; color: var(--muted); max-width: 62ch; }
+
+/* ---- 固定ツールバー ---- */
+.toolbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.toolbar .wrap { display: flex; flex-direction: column; gap: 10px; padding-block: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.search {
+  flex: 1 1 260px; min-width: 0;
+  font: inherit; color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+}
+.search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+.hits { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.chip {
+  flex: none; font: inherit; font-size: 13px; cursor: pointer;
+  color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px;
+  display: inline-flex; gap: 6px; align-items: center;
+}
+.chip .n { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip[aria-pressed="true"] .n { color: inherit; opacity: .8; }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- カテゴリとカード ---- */
+main { padding-block: 8px 48px; display: flex; flex-direction: column; gap: 36px; }
+.cat h2 {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--font-display); font-weight: 700; font-size: 19px;
+  margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--fg);
+}
+.cat h2 .count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-weight: 500; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+
+.card {
+  display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: start;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; scroll-margin-top: 140px;
+}
+.icon, .mini {
+  display: block; flex: none; border-radius: 8px;
+  background: var(--accent-soft) center / contain no-repeat;
+}
+.icon { width: 56px; height: 56px; }
+.mini { width: 28px; height: 28px; border-radius: 5px; }
+.body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.name { font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.35; margin: 0; }
+.short { font-size: 12.5px; color: var(--muted); }
+.tag {
+  font-size: 11px; font-weight: 700; color: var(--hot); background: var(--hot-soft);
+  border-radius: 4px; padding: 0 6px; letter-spacing: .04em;
+}
+.summary { margin: 0; }
+.kw { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.kw li {
+  font-size: 12.5px; line-height: 1.5; color: var(--accent); background: var(--accent-soft);
+  border-radius: 4px; padding: 1px 7px;
+}
+.use { margin: 0; font-size: 14px; }
+.compare { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); }
+.use b {
+  font-size: 11px; color: var(--surface); background: var(--accent); border-radius: 4px;
+  padding: 1px 6px; margin-right: 6px; font-weight: 700;
+}
+.compare b {
+  font-size: 11px; color: var(--fg); border: 1px solid var(--line); border-radius: 4px;
+  padding: 0 5px; margin-right: 6px; font-weight: 700;
+}
+.empty { color: var(--muted); padding-block: 24px; }
+
+/* ---- 比較表 ---- */
+.cat { display: flex; flex-direction: column; gap: 14px; }
+.cat h2 { margin-bottom: 0; }
+.compare-block { display: flex; flex-direction: column; gap: 12px; }
+.points h3 {
+  font-family: var(--font-display); font-size: 14px; font-weight: 700; margin: 0 0 4px;
+  color: var(--accent); letter-spacing: .04em;
+}
+.points ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 2px; }
+.points li { max-width: 80ch; }
+.points li::marker { color: var(--accent); }
+.table-scroll {
+  overflow-x: auto; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px;
+}
+.cmp { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13.5px; line-height: 1.55; }
+.cmp th, .cmp td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.cmp tbody tr:last-child > * { border-bottom: 0; }
+.cmp thead th {
+  font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .04em;
+  background: var(--bg); white-space: nowrap;
+}
+.cmp tbody th { width: 15em; font-weight: 700; }
+.cmp .svc { display: flex; align-items: center; gap: 8px; color: var(--fg); text-decoration: none; }
+.cmp .svc:hover .name { text-decoration: underline; text-decoration-color: var(--accent); }
+.cmp .svc:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.cmp .use-cell { min-width: 18em; }
+.cmp tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+
+/* ---- 表示の切り替え ---- */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: inherit; font-size: 13px; color: var(--muted); background: var(--surface);
+  border: 0; padding: 5px 12px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.view-table .grid { display: none; }
+.view-cards .compare-block { display: none; }
+
+/* ---- 暗記モード：名前を隠し、クリックで表示 ---- */
+.quiz .card, .quiz .cmp tbody tr { cursor: pointer; }
+.quiz .card:not(.open) .name,
+.quiz .card:not(.open) .short,
+.quiz .cmp tr:not(.open) .name {
+  color: transparent; background: var(--line); border-radius: 4px; user-select: none;
+}
+.quiz .card:not(.open) .name, .quiz .cmp tr:not(.open) .name { min-width: 9em; }
+.hide-kw .kw, .hide-kw .compare, .hide-kw .use { display: none; }
+.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+footer { color: var(--muted); font-size: 12.5px; padding-block: 0 32px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .chip, .card { transition: background-color .15s, border-color .15s; }
+}
+/*{{ICON_CSS}}*/
+</style>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">SAA-C03 · {{TOTAL}} services</div>
+    <h1>AWS サービス図鑑</h1>
+    <p>主要サービスのアイコン・正式名称・基本機能と、試験で出るキーワードの一覧です。カテゴリごとに、サービスの比較表と使い分けのポイントを載せています。「名前を隠す」をオンにすると、アイコンと説明から名前を当てる暗記カードになります。</p>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="wrap">
+    <div class="row">
+      <input id="q" class="search" type="search" placeholder="サービス名・キーワードで検索（例：疎結合、NoSQL、専用線）" aria-label="検索">
+      <div class="seg" role="group" aria-label="表示">
+        <button type="button" data-view="both" aria-pressed="true">表とカード</button>
+        <button type="button" data-view="table" aria-pressed="false">比較表だけ</button>
+        <button type="button" data-view="cards" aria-pressed="false">カードだけ</button>
+      </div>
+      <label class="toggle"><input id="quiz" type="checkbox">名前を隠す</label>
+      <label class="toggle"><input id="hidekw" type="checkbox">キーワードを隠す</label>
+      <span class="hits" id="hits" aria-live="polite"></span>
+    </div>
+    <div class="chips" role="group" aria-label="カテゴリで絞り込む">
+      <button type="button" class="chip" data-cat="" aria-pressed="true">すべて<span class="n">{{TOTAL}}</span></button>
+      {{NAV}}
+    </div>
+  </div>
+</div>
+
+<main class="wrap" id="main">
+  {{SECTIONS}}
+  <p class="empty" id="empty" hidden>該当するサービスがありません。別の言葉で検索してみてください。</p>
+</main>
+
+<footer class="wrap">アイコン：AWS Architecture Icons（diagrams ライブラリ同梱版）。仕様は変わることがあるため、細かい数値は公式ドキュメントで確認してください。</footer>
+
+<script>
+(() => {
+  const q = document.getElementById("q");
+  const quiz = document.getElementById("quiz");
+  const hidekw = document.getElementById("hidekw");
+  const hits = document.getElementById("hits");
+  const empty = document.getElementById("empty");
+  const chips = [...document.querySelectorAll(".chip")];
+  const sections = [...document.querySelectorAll("section.cat")];
+  const cards = [...document.querySelectorAll(".card")];
+  const rows = [...document.querySelectorAll(".cmp tbody tr")];
+  const views = [...document.querySelectorAll(".seg button")];
+  let cat = "";
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  function apply() {
+    const terms = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const s of sections) {
+      let n = 0;
+      const catOk = !cat || s.dataset.cat === cat;
+      for (const c of s.querySelectorAll(".card")) {
+        const ok = catOk && terms.every(t => c.dataset.search.includes(t));
+        c.hidden = !ok;
+        if (ok) n++;
+      }
+      for (const r of s.querySelectorAll(".cmp tbody tr")) {
+        r.hidden = document.getElementById(r.dataset.for).hidden;
+      }
+      s.hidden = n === 0;
+      shown += n;
+    }
+    hits.textContent = `${shown} / ${cards.length} 件`;
+    empty.hidden = shown !== 0;
+  }
+
+  chips.forEach(ch => ch.addEventListener("click", () => {
+    cat = ch.dataset.cat;
+    chips.forEach(c => c.setAttribute("aria-pressed", String(c === ch)));
+    apply();
+  }));
+  q.addEventListener("input", apply);
+
+  function setView(v) {
+    document.body.classList.toggle("view-table", v === "table");
+    document.body.classList.toggle("view-cards", v === "cards");
+    views.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+    store.set("svc-view", v);
+  }
+  views.forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+
+  function setQuiz() {
+    document.body.classList.toggle("quiz", quiz.checked);
+    rows.forEach(r => r.classList.remove("open"));
+    cards.forEach(c => {
+      c.classList.remove("open");
+      if (quiz.checked) c.tabIndex = 0; else c.removeAttribute("tabindex");
+    });
+    store.set("svc-quiz", quiz.checked ? "1" : "");
+  }
+  function setHideKw() {
+    document.body.classList.toggle("hide-kw", hidekw.checked);
+    store.set("svc-hidekw", hidekw.checked ? "1" : "");
+  }
+  quiz.addEventListener("change", setQuiz);
+  hidekw.addEventListener("change", setHideKw);
+  cards.forEach(c => {
+    const flip = () => { if (quiz.checked) c.classList.toggle("open"); };
+    c.addEventListener("click", flip);
+    c.addEventListener("keydown", ev => {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); flip(); }
+    });
+  });
+
+  rows.forEach(r => r.addEventListener("click", ev => {
+    if (!quiz.checked) return;
+    if (!r.classList.contains("open")) ev.preventDefault();
+    r.classList.toggle("open");
+  }));
+
+  setView(["table", "cards"].includes(store.get("svc-view")) ? store.get("svc-view") : "both");
+  quiz.checked = store.get("svc-quiz") === "1";
+  hidekw.checked = store.get("svc-hidekw") === "1";
+  setQuiz(); setHideKw(); apply();
+})();
+</script>

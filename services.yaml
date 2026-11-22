@@ -1,0 +1,885 @@
+# AWS 主要サービス一覧（SAA-C03 対策）のデータ
+#
+# ■ サービスを追加するには
+#   1. 下の services: に 1 件追記する（どこに書いても、表示はカテゴリ順・この並び順になる）
+#   2. `uv run --with pyyaml python build.py` を実行する → index.html が作り直される
+#
+# ■ 項目
+#   id        : 英小文字とハイフンの識別子（重複不可）
+#   name      : 正式名称（例 "Amazon EC2"）
+#   short     : 略称・通称（任意）
+#   category  : 下の categories: のキー
+#   icon      : diagrams ライブラリ同梱の AWS アイコン "<分類>/<ファイル名>"（拡張子なし）
+#               一覧は `uv run --with diagrams python build.py --list-icons`
+#               icons/ に同名の PNG を置けば、そちらが優先される（自前のアイコンも使える）
+#   summary   : 基本機能（1〜2 文）
+#   use_when  : どういうときに使うか（1 文。「〜とき」で終える）。カードと比較表に出る
+#   attrs     : 比較表の列の値。列名はそのカテゴリの columns と同じにする
+#               例 attrs: {"種類": "ブロック", "主な使い方": "1 台の EC2 にアタッチ"}
+#   keywords  : 試験で「この語が出たらこのサービス」となるキーワード（任意）
+#   compare   : 紛らわしいサービスとの違い（任意）
+#   tags      : 自由なタグ（任意。例 [頻出, 要復習]）。検索の対象になる
+#
+# ■ カテゴリ（categories:）
+#   label   : 表示名
+#   columns : 比較表の列（サービス名と「どういうときに使うか」の列は自動で付く）
+#   points  : 使い分けのポイント（任意。試験での判断ルールを 1 行ずつ）
+#   カテゴリに属するサービスは、すべて自動で比較表の行になる
+
+categories:
+  compute:
+    label: コンピューティング
+    columns: ["自分で管理する範囲", "課金"]
+    points:
+      - "サーバー管理を減らしたいほど EC2 → Elastic Beanstalk → Lambda の順に選ぶ。"
+      - "「15 分を超える処理」なら Lambda は不可。EC2・Batch・コンテナを検討する。"
+      - "「オンプレミスで AWS と同じサービスを」なら Outposts。"
+  container:
+    label: コンテナ
+    columns: ["役割", "サーバー（ホスト）の管理"]
+    points:
+      - "オーケストレーション（ECS / EKS）と実行環境（EC2 / Fargate）は組み合わせで選ぶ。"
+      - "「Kubernetes」と出たら EKS、「サーバー管理なし」と出たら Fargate。"
+  storage:
+    label: ストレージ
+    columns: ["種類", "主な使い方"]
+    points:
+      - "1 台の EC2 のディスク → EBS、複数の Linux で共有 → EFS、Windows で共有 → FSx for Windows File Server。"
+      - "大量のファイルを安く丈夫に → S3、めったに読まない長期保存 → S3 Glacier。"
+      - "オンプレミスから AWS のストレージを使う → Storage Gateway。"
+  database:
+    label: データベース
+    columns: ["データモデル", "得意なこと"]
+    points:
+      - "SQL・トランザクションが必要 → RDS / Aurora、大規模で単純なキー検索 → DynamoDB。"
+      - "読み取りを速くしたい → ElastiCache（DynamoDB なら DAX）やリードレプリカ。"
+      - "分析・集計 → Redshift（S3 のデータをその場で検索するだけなら Athena）。"
+  network:
+    label: ネットワーク・コンテンツ配信
+    columns: ["役割", "つなぐもの・対象"]
+    points:
+      - "プライベートサブネットから外へ → NAT ゲートウェイ、AWS サービスへ内部で → VPC エンドポイント。"
+      - "オンプレミスとの接続：すぐ・安く → Site-to-Site VPN、安定した帯域 → Direct Connect。"
+      - "コンテンツをキャッシュして配信 → CloudFront、キャッシュせず経路を速く・固定 IP → Global Accelerator。"
+      - "VPC がたくさん → Transit Gateway（少数なら VPC ピアリング）。"
+  security:
+    label: セキュリティ・ID・コンプライアンス
+    columns: ["種類", "対象"]
+    points:
+      - "AWS を操作する人の権限 → IAM、アプリの利用者の認証 → Cognito。"
+      - "検出系の区別：脅威 → GuardDuty、脆弱性 → Inspector、S3 の個人情報 → Macie。"
+      - "Web 攻撃（SQL インジェクションなど）→ WAF、DDoS → Shield。"
+      - "鍵の管理 → KMS（専有ハードウェアが必須なら CloudHSM）、パスワードの自動ローテーション → Secrets Manager。"
+  integration:
+    label: アプリケーション統合
+    columns: ["配信のしかた", "特徴"]
+    points:
+      - "「疎結合」「非同期」「バッファ」→ SQS、「複数の宛先へ同時に」→ SNS（SNS + SQS でファンアウト）。"
+      - "処理の順番や分岐を管理 → Step Functions、イベントやスケジュールで起動 → EventBridge。"
+      - "既存の ActiveMQ / RabbitMQ をそのまま移す → Amazon MQ。"
+  management:
+    label: マネジメント・ガバナンス
+    columns: ["分かること・できること", "試験での問われ方"]
+    points:
+      - "監視（性能）→ CloudWatch、操作の記録（誰が）→ CloudTrail、設定の記録（どう変わったか）→ Config。"
+      - "複数アカウントの統制 → Organizations（SCP）、その環境づくりを自動で → Control Tower。"
+  analytics:
+    label: 分析
+    columns: ["処理のタイミング", "主な役割"]
+    points:
+      - "リアルタイムに自前で処理 → Kinesis Data Streams、保存先へ流すだけ → Data Firehose。"
+      - "S3 のデータをその場で SQL → Athena、変換（ETL）→ Glue、大規模処理（Spark）→ EMR。"
+  migration:
+    label: 移行・転送
+    columns: ["移すもの", "方法"]
+    points:
+      - "回線で何週間もかかる量 → Snow Family、オンラインで転送・同期 → DataSync。"
+      - "DB → DMS、サーバー丸ごと → Application Migration Service、SFTP の受け口 → Transfer Family。"
+  ml:
+    label: 機械学習
+    columns: ["入力", "出力"]
+    points:
+      - "既製の AI サービス（Rekognition・Textract など）で足りるならそれを使い、独自モデルが必要なら SageMaker AI。"
+      - "入力と出力で覚える：画像 → Rekognition、書類 → Textract、音声 → Transcribe、文章 → Comprehend。"
+  devtools:
+    label: 開発者ツール
+    columns: ["CI/CD での担当", "対象"]
+    points:
+      - "流れをつなぐ → CodePipeline、ビルド → CodeBuild、デプロイ → CodeDeploy。"
+
+services:
+  # ---------- コンピューティング ----------
+  - id: ec2
+    name: Amazon EC2
+    short: Elastic Compute Cloud
+    category: compute
+    icon: compute/ec2
+    summary: 仮想サーバー（インスタンス）を必要な分だけ起動できる。OS やミドルウェアを自由に選べる。
+    use_when: "OS やミドルウェアを自由に選びたい、長時間動かし続けるサーバーが必要なとき"
+    attrs: {"自分で管理する範囲": "OS から上すべて", "課金": "起動している時間"}
+    keywords: [仮想サーバー, インスタンスタイプ, オンデマンド, リザーブドインスタンス, スポットインスタンス, Savings Plans]
+    compare: OS の管理まで自分で行う。サーバー管理をしたくないなら Lambda / Fargate。
+    tags: [頻出]
+  - id: ec2-auto-scaling
+    name: Amazon EC2 Auto Scaling
+    category: compute
+    icon: compute/ec2-auto-scaling
+    summary: 負荷やスケジュールに応じて EC2 インスタンスの台数を自動で増減する。異常なインスタンスの置き換えも行う。
+    use_when: "アクセス量の変動に合わせて台数を自動で増減したい、壊れたインスタンスを自動で置き換えたいとき"
+    attrs: {"自分で管理する範囲": "EC2 の台数を自動調整", "課金": "無料（起動した EC2 の分だけ）"}
+    keywords: [需要に応じて台数を調整, ターゲット追跡, 起動テンプレート, 最小・最大・希望容量]
+    tags: [頻出]
+  - id: lambda
+    name: AWS Lambda
+    category: compute
+    icon: compute/lambda
+    summary: サーバーを用意せずにコードを実行するサーバーレスの実行環境。イベントをきっかけに動き、実行時間分だけ課金される。
+    use_when: "イベントをきっかけに 15 分以内の処理を動かし、サーバー管理をしたくないとき"
+    attrs: {"自分で管理する範囲": "コードだけ", "課金": "リクエスト数＋実行時間"}
+    keywords: [サーバーレス, イベント駆動, 運用オーバーヘッド最小, 最大実行時間 15 分]
+    compare: 15 分を超える長時間処理には向かない（ECS/Fargate や Batch を検討）。
+    tags: [頻出]
+  - id: elastic-beanstalk
+    name: AWS Elastic Beanstalk
+    category: compute
+    icon: compute/elastic-beanstalk
+    summary: コードをアップロードするだけで、EC2・ロードバランサー・Auto Scaling などの実行環境を自動で構築・管理する。
+    use_when: "インフラの細かい設定をせずに、Web アプリを手早くデプロイしたいとき"
+    attrs: {"自分で管理する範囲": "コード（環境は自動構築）", "課金": "無料（作られた EC2 などの分だけ）"}
+    keywords: [アプリのデプロイを簡単に, インフラを意識しない, PaaS]
+  - id: batch
+    name: AWS Batch
+    category: compute
+    icon: compute/batch
+    summary: 大量のバッチ処理ジョブを、必要な計算資源を自動で用意しながら実行する。
+    use_when: "大量のバッチジョブや長時間の計算処理を、計算資源の用意を自動化して実行したいとき"
+    attrs: {"自分で管理する範囲": "ジョブの定義", "課金": "無料（使った EC2・Fargate の分だけ）"}
+    keywords: [バッチジョブ, 長時間の計算処理, ジョブキュー]
+  - id: lightsail
+    name: Amazon Lightsail
+    category: compute
+    icon: compute/lightsail
+    summary: サーバー・ストレージ・ネットワークをまとめた定額の簡易 VPS。小規模サイト向け。
+    use_when: "小規模な Web サイトやブログを、定額で簡単に始めたいとき"
+    attrs: {"自分で管理する範囲": "OS から上（簡易）", "課金": "月額定額"}
+    keywords: [定額, 簡単に Web サイトを立ち上げ, 小規模]
+  - id: outposts
+    name: AWS Outposts
+    category: compute
+    icon: compute/outposts
+    summary: AWS のハードウェアを自社データセンターに設置し、オンプレミスで AWS と同じサービスを使えるようにする。
+    use_when: "低レイテンシーやデータの所在の要件で、オンプレミスに置いたまま AWS のサービスを使いたいとき"
+    attrs: {"自分で管理する範囲": "OS から上＋設置場所", "課金": "構成ごとの契約"}
+    keywords: [オンプレミスで AWS サービス, 低レイテンシーのローカル処理, データの所在要件]
+
+  # ---------- コンテナ ----------
+  - id: ecs
+    name: Amazon ECS
+    short: Elastic Container Service
+    category: container
+    icon: compute/elastic-container-service
+    summary: Docker コンテナの実行と管理を行う AWS 独自のコンテナオーケストレーションサービス。
+    use_when: "AWS のサービスと組み合わせて、シンプルにコンテナを動かしたいとき"
+    attrs: {"役割": "オーケストレーション（AWS 独自）", "サーバー（ホスト）の管理": "EC2 起動タイプは必要／Fargate なら不要"}
+    keywords: [コンテナ, タスク定義, サービス]
+    compare: Kubernetes を使いたいなら EKS。
+  - id: eks
+    name: Amazon EKS
+    short: Elastic Kubernetes Service
+    category: container
+    icon: compute/elastic-kubernetes-service
+    summary: Kubernetes のコントロールプレーンを AWS が管理してくれるサービス。
+    use_when: "Kubernetes を使いたい、既存の Kubernetes 環境をそのまま移したいとき"
+    attrs: {"役割": "オーケストレーション（Kubernetes）", "サーバー（ホスト）の管理": "EC2 なら必要／Fargate なら不要"}
+    keywords: [Kubernetes, 既存の Kubernetes 環境を移行]
+  - id: fargate
+    name: AWS Fargate
+    category: container
+    icon: compute/fargate
+    summary: ECS / EKS のコンテナを、サーバー（EC2）を管理せずに動かせる実行環境。
+    use_when: "コンテナのホスト（EC2）のパッチ適用や台数管理をしたくないとき"
+    attrs: {"役割": "コンテナの実行環境", "サーバー（ホスト）の管理": "不要"}
+    keywords: [サーバーレスのコンテナ, EC2 の管理不要, 運用オーバーヘッド最小]
+    compare: ECS/EKS の「起動タイプ」の一つ。EC2 起動タイプはホストを自分で管理する。
+  - id: ecr
+    name: Amazon ECR
+    short: Elastic Container Registry
+    category: container
+    icon: compute/ec2-container-registry
+    summary: コンテナイメージを保存・管理するレジストリ。
+    use_when: "ECS・EKS で使うコンテナイメージを保存・配布したいとき"
+    attrs: {"役割": "イメージの保存", "サーバー（ホスト）の管理": "不要"}
+    keywords: [コンテナイメージの保存, Docker イメージ]
+
+  # ---------- ストレージ ----------
+  - id: s3
+    name: Amazon S3
+    short: Simple Storage Service
+    category: storage
+    icon: storage/simple-storage-service-s3
+    summary: 容量無制限のオブジェクトストレージ。耐久性 99.999999999%（イレブンナイン）。静的 Web サイトのホスティングもできる。
+    use_when: "画像・ログ・バックアップなど大量のファイルを安く丈夫に保存したい、静的サイトを公開したいとき"
+    attrs: {"種類": "オブジェクト", "主な使い方": "HTTPS（API）で読み書き"}
+    keywords: [オブジェクトストレージ, 静的コンテンツ, ストレージクラス, ライフサイクルポリシー, バージョニング, 署名付き URL]
+    compare: ブロック（EBS）・ファイル（EFS）と違い、OS からディスクとしてはマウントしない。
+    tags: [頻出]
+  - id: s3-glacier
+    name: Amazon S3 Glacier
+    category: storage
+    icon: storage/s3-glacier
+    summary: 長期保存向けの低コストな S3 ストレージクラス群。取り出しに時間がかかるものほど安い。
+    use_when: "めったに読まないデータを、長期間・最安で保管したいとき"
+    attrs: {"種類": "オブジェクト（アーカイブ）", "主な使い方": "取り出しに分〜時間かかる"}
+    keywords: [アーカイブ, 長期保存, 取り出しに数時間かかってもよい, Deep Archive, コンプライアンス保管]
+  - id: ebs
+    name: Amazon EBS
+    short: Elastic Block Store
+    category: storage
+    icon: storage/elastic-block-store-ebs
+    summary: EC2 にアタッチするブロックストレージ（仮想ディスク）。スナップショットで S3 にバックアップできる。
+    use_when: "EC2 の OS 領域や DB など、1 台のサーバーが使う高速なディスクが必要なとき"
+    attrs: {"種類": "ブロック", "主な使い方": "1 台の EC2 にアタッチ（同じ AZ）"}
+    keywords: [ブロックストレージ, EC2 のディスク, gp3, io2, スナップショット, 同じ AZ]
+    compare: 基本は 1 つの AZ の 1 台の EC2 から使う。複数台で共有するなら EFS。
+    tags: [頻出]
+  - id: efs
+    name: Amazon EFS
+    short: Elastic File System
+    category: storage
+    icon: storage/elastic-file-system-efs
+    summary: 複数の EC2（Linux）から同時にマウントできる、容量が自動で伸び縮みするファイルストレージ（NFS）。
+    use_when: "複数の Linux サーバーで同じファイルを共有したいとき"
+    attrs: {"種類": "ファイル（NFS）", "主な使い方": "複数の Linux から同時にマウント"}
+    keywords: [共有ファイルシステム, 複数インスタンスから同時アクセス, Linux, NFS, マルチ AZ]
+    compare: Windows のファイル共有なら FSx for Windows File Server。
+    tags: [頻出]
+  - id: fsx
+    name: Amazon FSx
+    category: storage
+    icon: storage/fsx
+    summary: Windows File Server・Lustre・NetApp ONTAP・OpenZFS などのファイルシステムをフルマネージドで提供する。
+    use_when: "Windows のファイル共有（AD 連携）や、HPC 向けの高速なファイルシステムが必要なとき"
+    attrs: {"種類": "ファイル（SMB・Lustre など）", "主な使い方": "Windows・HPC からマウント"}
+    keywords: [SMB, Windows ファイル共有, Active Directory 連携, Lustre, HPC]
+  - id: storage-gateway
+    name: AWS Storage Gateway
+    category: storage
+    icon: storage/storage-gateway
+    summary: オンプレミスのサーバーから AWS のストレージ（S3 など）を、ファイル・ボリューム・テープとして使えるようにする。
+    use_when: "オンプレミスのサーバーを使い続けながら、データを AWS に保存したいとき"
+    attrs: {"種類": "ハイブリッド", "主な使い方": "オンプレミスからファイル・ボリューム・テープとして"}
+    keywords: [ハイブリッドストレージ, オンプレミスから S3, テープバックアップの置き換え, ファイルゲートウェイ]
+  - id: backup
+    name: AWS Backup
+    category: storage
+    icon: storage/backup
+    summary: EBS・RDS・DynamoDB・EFS などのバックアップを、ポリシーで一元的に自動化する。
+    use_when: "いろいろなサービスのバックアップを、ポリシーでまとめて自動化したいとき"
+    attrs: {"種類": "バックアップの管理", "主な使い方": "EBS・RDS・DynamoDB・EFS などを一元化"}
+    keywords: [バックアップの一元管理, バックアッププラン, クロスリージョンコピー]
+
+  # ---------- データベース ----------
+  - id: rds
+    name: Amazon RDS
+    short: Relational Database Service
+    category: database
+    icon: database/rds
+    summary: MySQL・PostgreSQL・Oracle・SQL Server などのリレーショナルデータベースをマネージドで提供する。
+    use_when: "MySQL や Oracle などの DB を、運用の手間を減らして AWS で使いたいとき"
+    attrs: {"データモデル": "リレーショナル", "得意なこと": "SQL・トランザクション"}
+    keywords: [リレーショナル DB, マルチ AZ（高可用性）, リードレプリカ（読み取り性能）, 自動バックアップ]
+    compare: マルチ AZ は障害対策、リードレプリカは読み取りの負荷分散。目的が違う。
+    tags: [頻出]
+  - id: aurora
+    name: Amazon Aurora
+    category: database
+    icon: database/aurora
+    summary: MySQL / PostgreSQL 互換の AWS 製高性能データベース。データを 3 つの AZ に 6 重で保存する。
+    use_when: "RDS より高い性能・可用性が欲しい、リージョンをまたぐ災害対策が必要なとき"
+    attrs: {"データモデル": "リレーショナル（MySQL / PostgreSQL 互換）", "得意なこと": "高性能・高可用性"}
+    keywords: [高性能, MySQL 互換, PostgreSQL 互換, Aurora Serverless, Aurora Global Database]
+    tags: [頻出]
+  - id: dynamodb
+    name: Amazon DynamoDB
+    category: database
+    icon: database/dynamodb
+    summary: キーバリュー型のサーバーレス NoSQL データベース。どの規模でも 1 桁ミリ秒の応答。
+    use_when: "アクセスが大量・急増するアプリで、キーを指定した読み書きを高速にしたいとき"
+    attrs: {"データモデル": "キーバリュー（NoSQL）", "得意なこと": "大規模でも 1 桁ミリ秒の応答"}
+    keywords: [NoSQL, キーバリュー, ミリ秒単位のレイテンシー, サーバーレス, DAX, グローバルテーブル]
+    tags: [頻出]
+  - id: elasticache
+    name: Amazon ElastiCache
+    category: database
+    icon: database/elasticache
+    summary: Redis / Memcached 互換のインメモリキャッシュ。DB の前に置いて読み取りを高速化する。
+    use_when: "DB への同じ読み取りを減らしたい、セッション情報を高速に共有したいとき"
+    attrs: {"データモデル": "インメモリ", "得意なこと": "マイクロ秒単位の読み取り"}
+    keywords: [インメモリ, キャッシュ, セッション情報の保存, DB の読み取り負荷軽減]
+    compare: DynamoDB 専用のキャッシュは DAX。
+  - id: redshift
+    name: Amazon Redshift
+    category: database
+    icon: database/redshift
+    summary: ペタバイト規模のデータを SQL で高速に分析するデータウェアハウス。
+    use_when: "業務データを集めて、大量データの集計や分析をしたいとき"
+    attrs: {"データモデル": "列指向（データウェアハウス）", "得意なこと": "大量データの集計・分析"}
+    keywords: [データウェアハウス, 分析クエリ, OLAP, 列指向]
+    compare: S3 のデータをその場で SQL 検索するだけなら Athena。
+  - id: documentdb
+    name: Amazon DocumentDB
+    category: database
+    icon: database/documentdb-mongodb-compatibility
+    summary: MongoDB 互換のドキュメント型データベース。
+    use_when: "MongoDB で作ったアプリを、AWS のマネージド DB に移したいとき"
+    attrs: {"データモデル": "ドキュメント", "得意なこと": "JSON の柔軟な構造"}
+    keywords: [MongoDB 互換, JSON ドキュメント]
+  - id: neptune
+    name: Amazon Neptune
+    category: database
+    icon: database/neptune
+    summary: データ同士のつながりを扱うグラフデータベース。
+    use_when: "SNS の友達関係やレコメンドなど、データ同士の関係をたどりたいとき"
+    attrs: {"データモデル": "グラフ", "得意なこと": "つながりの検索"}
+    keywords: [グラフ DB, SNS の友達関係, レコメンド, 不正検知]
+
+  # ---------- ネットワーク・コンテンツ配信 ----------
+  - id: vpc
+    name: Amazon VPC
+    short: Virtual Private Cloud
+    category: network
+    icon: network/vpc
+    summary: AWS 上に作る自分専用の仮想ネットワーク。サブネット・ルートテーブル・ゲートウェイで構成する。
+    use_when: "AWS 上にリソースを置く土台として、IP アドレスやサブネットを自分で設計したいとき"
+    attrs: {"役割": "仮想ネットワーク", "つなぐもの・対象": "AWS 内の自分専用のネットワーク"}
+    keywords: [サブネット, セキュリティグループ, ネットワーク ACL, ルートテーブル, VPC ピアリング, VPC エンドポイント]
+    tags: [頻出]
+  - id: internet-gateway
+    name: インターネットゲートウェイ
+    short: IGW
+    category: network
+    icon: network/internet-gateway
+    summary: VPC とインターネットをつなぐ出入口。パブリックサブネットのルートテーブルで指定する。
+    use_when: "パブリックサブネットの Web サーバーを、インターネットに公開したいとき"
+    attrs: {"役割": "出入口", "つなぐもの・対象": "VPC ⇔ インターネット（双方向）"}
+    keywords: [パブリックサブネット, インターネットとの双方向通信]
+  - id: nat-gateway
+    name: NAT ゲートウェイ
+    category: network
+    icon: network/nat-gateway
+    summary: プライベートサブネットのリソースが、外から接続されずにインターネットへ出ていけるようにする。パブリックサブネットに置く。
+    use_when: "外からは接続させずに、プライベートサブネットのサーバーからパッチなどをダウンロードしたいとき"
+    attrs: {"役割": "外向きの出口", "つなぐもの・対象": "プライベートサブネット → インターネット"}
+    keywords: [プライベートサブネットからインターネットへ, アウトバウンドのみ, パッチのダウンロード]
+    tags: [頻出]
+  - id: vpc-endpoint
+    name: VPC エンドポイント
+    short: AWS PrivateLink
+    category: network
+    icon: network/endpoint
+    summary: インターネットを通らずに、VPC から S3 や DynamoDB などの AWS サービスへ接続する。
+    use_when: "インターネットを通らずに、VPC から S3 などの AWS サービスへ接続したいとき"
+    attrs: {"役割": "私設の接続口", "つなぐもの・対象": "VPC → AWS サービス"}
+    keywords: [インターネットを経由しない, ゲートウェイ型（S3・DynamoDB）, インターフェイス型（PrivateLink）]
+  - id: transit-gateway
+    name: AWS Transit Gateway
+    category: network
+    icon: network/transit-gateway
+    summary: 多数の VPC とオンプレミスのネットワークを、ハブとなる 1 か所でまとめて接続する。
+    use_when: "たくさんの VPC やオンプレミスを、まとめて相互に接続したいとき"
+    attrs: {"役割": "ハブ", "つなぐもの・対象": "多数の VPC ⇔ オンプレミス"}
+    keywords: [多数の VPC を接続, ハブアンドスポーク, VPC ピアリングの管理が煩雑]
+  - id: elb
+    name: Elastic Load Balancing
+    short: ELB（ALB / NLB / GWLB）
+    category: network
+    icon: network/elastic-load-balancing
+    summary: 受け取った通信を複数のターゲットへ振り分ける。ALB は HTTP(S)、NLB は TCP/UDP を高性能に処理する。
+    use_when: "複数のサーバーに通信を振り分け、1 台が壊れてもサービスを止めたくないとき"
+    attrs: {"役割": "負荷分散", "つなぐもの・対象": "利用者 → 複数のターゲット"}
+    keywords: [負荷分散, ALB（パスベースルーティング）, NLB（固定 IP・超低レイテンシー）, ヘルスチェック]
+    tags: [頻出]
+  - id: route53
+    name: Amazon Route 53
+    category: network
+    icon: network/route-53
+    summary: DNS サービス。ドメイン名の登録や、ヘルスチェックに基づくフェイルオーバーなどのルーティングを行う。
+    use_when: "独自ドメインを使いたい、障害時に別のリージョンへ自動で切り替えたいとき"
+    attrs: {"役割": "DNS", "つなぐもの・対象": "ドメイン名 → IP アドレス・リソース"}
+    keywords: [DNS, フェイルオーバールーティング, 加重ルーティング, レイテンシールーティング, 位置情報ルーティング]
+    tags: [頻出]
+  - id: cloudfront
+    name: Amazon CloudFront
+    category: network
+    icon: network/cloudfront
+    summary: 世界中のエッジロケーションにコンテンツをキャッシュして配信する CDN。
+    use_when: "世界中の利用者に、コンテンツをキャッシュして高速に配信したいとき"
+    attrs: {"役割": "CDN（キャッシュ）", "つなぐもの・対象": "利用者 → エッジ → オリジン"}
+    keywords: [CDN, エッジロケーション, 静的コンテンツの高速配信, OAC（S3 への直接アクセスを防ぐ）]
+    tags: [頻出]
+  - id: global-accelerator
+    name: AWS Global Accelerator
+    category: network
+    icon: network/global-accelerator
+    summary: 固定のエニーキャスト IP で受けた通信を、AWS のグローバルネットワーク経由で最適なリージョンへ届ける。
+    use_when: "TCP / UDP のアプリを固定 IP で提供し、リージョン障害時に素早く切り替えたいとき"
+    attrs: {"役割": "通信経路の高速化", "つなぐもの・対象": "利用者 → 固定 IP → 最適なリージョン"}
+    keywords: [固定 IP, TCP/UDP, グローバルなアプリの高速化, リージョン間の即時フェイルオーバー]
+    compare: CloudFront はキャッシュして配信、Global Accelerator はキャッシュせず経路を速くする。
+  - id: direct-connect
+    name: AWS Direct Connect
+    category: network
+    icon: network/direct-connect
+    summary: オンプレミスと AWS を専用線でつなぐ。帯域が安定し、インターネットを通らない。
+    use_when: "大量のデータを、安定した帯域でインターネットを通らずにやり取りしたいとき"
+    attrs: {"役割": "専用線", "つなぐもの・対象": "オンプレミス ⇔ AWS"}
+    keywords: [専用線, 安定した帯域, 一貫したネットワークパフォーマンス, 開通まで時間がかかる]
+    compare: すぐ使いたい・安く済ませたいなら Site-to-Site VPN。
+  - id: site-to-site-vpn
+    name: AWS Site-to-Site VPN
+    category: network
+    icon: network/site-to-site-vpn
+    summary: オンプレミスと VPC を、インターネット上の暗号化された IPsec トンネルでつなぐ。
+    use_when: "オンプレミスと AWS を、すぐに・安く・安全につなぎたいとき"
+    attrs: {"役割": "暗号化トンネル（インターネット経由）", "つなぐもの・対象": "オンプレミス ⇔ VPC"}
+    keywords: [IPsec, すぐに接続, 低コスト, Direct Connect のバックアップ]
+  - id: api-gateway
+    name: Amazon API Gateway
+    category: network
+    icon: network/api-gateway
+    summary: REST / HTTP / WebSocket API を作成・公開・管理する。Lambda と組み合わせてサーバーレス API を作れる。
+    use_when: "Lambda などの処理を API として公開し、認証や流量制限をかけたいとき"
+    attrs: {"役割": "API の窓口", "つなぐもの・対象": "利用者 → Lambda などのバックエンド"}
+    keywords: [API の公開, スロットリング, サーバーレス API]
+
+  # ---------- セキュリティ・ID・コンプライアンス ----------
+  - id: iam
+    name: AWS IAM
+    short: Identity and Access Management
+    category: security
+    icon: security/identity-and-access-management-iam
+    summary: 誰が・どの AWS リソースに・何をしてよいかを管理する。ユーザー・グループ・ロール・ポリシーで構成する。
+    use_when: "AWS のリソースに誰が何をできるかを、最小権限で決めたいとき"
+    attrs: {"種類": "アクセス管理", "対象": "AWS を操作する人・サービス"}
+    keywords: [最小権限, IAM ロール（EC2 にアクセス権を渡す）, ポリシー, MFA]
+    tags: [頻出]
+  - id: iam-identity-center
+    name: AWS IAM Identity Center
+    short: 旧 AWS SSO
+    category: security
+    icon: security/single-sign-on
+    summary: 複数の AWS アカウントやアプリへのシングルサインオンを一元管理する。
+    use_when: "複数の AWS アカウントへ、1 つの ID でログインできるようにしたいとき"
+    attrs: {"種類": "アクセス管理（SSO）", "対象": "複数アカウントを使う社員"}
+    keywords: [シングルサインオン, 複数アカウントへのアクセス, 既存の ID プロバイダー連携]
+  - id: cognito
+    name: Amazon Cognito
+    category: security
+    icon: security/cognito
+    summary: Web・モバイルアプリの利用者のサインアップ・サインインを提供する。Google などのソーシャルログインにも対応。
+    use_when: "自分の Web・モバイルアプリに、会員登録・ログイン機能を付けたいとき"
+    attrs: {"種類": "認証", "対象": "アプリの利用者"}
+    keywords: [アプリの利用者認証, ユーザープール, ID プール, ソーシャルログイン]
+    compare: AWS を操作する社員の権限は IAM、アプリの利用者の認証は Cognito。
+  - id: kms
+    name: AWS KMS
+    short: Key Management Service
+    category: security
+    icon: security/key-management-service
+    summary: データ暗号化に使う鍵を作成・管理する。多くの AWS サービスの保管時の暗号化と連携する。
+    use_when: "S3 や EBS などのデータを、鍵を管理しながら手軽に暗号化したいとき"
+    attrs: {"種類": "暗号化", "対象": "暗号鍵（AWS が管理するハードウェア）"}
+    keywords: [暗号化キーの管理, 保管時の暗号化, キーローテーション, SSE-KMS]
+    compare: 専用ハードウェアで鍵を自分だけが管理する必要があるなら CloudHSM。
+    tags: [頻出]
+  - id: cloudhsm
+    name: AWS CloudHSM
+    category: security
+    icon: security/cloudhsm
+    summary: 専有のハードウェアセキュリティモジュール（HSM）で暗号鍵を管理する。
+    use_when: "規制のため、鍵を専有の HSM で自分だけが管理する必要があるとき"
+    attrs: {"種類": "暗号化", "対象": "暗号鍵（専有ハードウェア）"}
+    keywords: [専有 HSM, FIPS 140-2 レベル 3, 鍵を顧客だけが管理]
+  - id: secrets-manager
+    name: AWS Secrets Manager
+    category: security
+    icon: security/secrets-manager
+    summary: DB のパスワードや API キーなどの秘密情報を保存し、自動でローテーションする。
+    use_when: "DB のパスワードをコードに書かずに保存し、自動で定期的に変更したいとき"
+    attrs: {"種類": "秘密情報の管理", "対象": "DB のパスワード・API キー"}
+    keywords: [認証情報の自動ローテーション, パスワードのハードコードを避ける]
+    compare: ローテーション不要の設定値なら Systems Manager Parameter Store（無料枠あり）。
+  - id: acm
+    name: AWS Certificate Manager
+    short: ACM
+    category: security
+    icon: security/certificate-manager
+    summary: SSL/TLS 証明書を発行・管理し、自動で更新する。ELB や CloudFront に設定して使う。
+    use_when: "ELB や CloudFront で HTTPS を使い、証明書の更新を自動にしたいとき"
+    attrs: {"種類": "証明書の管理", "対象": "SSL/TLS 証明書"}
+    keywords: [SSL/TLS 証明書, HTTPS, 自動更新]
+  - id: waf
+    name: AWS WAF
+    category: security
+    icon: security/waf
+    summary: Web アプリへの攻撃（SQL インジェクション・XSS など）を、ALB・CloudFront・API Gateway の前で防ぐファイアウォール。
+    use_when: "SQL インジェクションなどの攻撃や、特定の IP・国からのアクセスを防ぎたいとき"
+    attrs: {"種類": "防御", "対象": "Web アプリへの攻撃（L7）"}
+    keywords: [SQL インジェクション, クロスサイトスクリプティング, IP アドレスでブロック, レートベースルール]
+    tags: [頻出]
+  - id: shield
+    name: AWS Shield
+    category: security
+    icon: security/shield
+    summary: DDoS 攻撃から守る。Standard は無料で自動適用、Advanced は有償で高度な保護と専門チームの支援が付く。
+    use_when: "DDoS 攻撃からサービスを守りたいとき（大規模な対策や支援が要るなら Advanced）"
+    attrs: {"種類": "防御", "対象": "DDoS 攻撃"}
+    keywords: [DDoS 攻撃]
+  - id: guardduty
+    name: Amazon GuardDuty
+    category: security
+    icon: security/guardduty
+    summary: CloudTrail・VPC フローログ・DNS ログなどを機械学習で分析し、不審な動きや脅威を検出する。
+    use_when: "不正アクセスや乗っ取りの兆候を、エージェントなしで自動検出したいとき"
+    attrs: {"種類": "脅威の検出", "対象": "アカウント全体の不審な動き"}
+    keywords: [脅威検出, 不正なアクセス, 異常なアクティビティ]
+  - id: inspector
+    name: Amazon Inspector
+    category: security
+    icon: security/inspector
+    summary: EC2・コンテナイメージ・Lambda のソフトウェアの脆弱性やネットワークの露出を自動でスキャンする。
+    use_when: "ソフトウェアの既知の脆弱性を、継続的にスキャンしたいとき"
+    attrs: {"種類": "脆弱性の検出", "対象": "EC2・コンテナイメージ・Lambda"}
+    keywords: [脆弱性スキャン, CVE]
+  - id: macie
+    name: Amazon Macie
+    category: security
+    icon: security/macie
+    summary: S3 に保存されたデータから、個人情報などの機密データを機械学習で見つけ出す。
+    use_when: "S3 に個人情報などの機密データが置かれていないかを見つけたいとき"
+    attrs: {"種類": "機密データの検出", "対象": "S3 のデータ"}
+    keywords: [S3 の個人情報（PII）を検出, 機密データの発見]
+  - id: security-hub
+    name: AWS Security Hub
+    category: security
+    icon: security/security-hub
+    summary: GuardDuty・Inspector・Macie などの検出結果をまとめ、セキュリティの状況を一元的に確認する。
+    use_when: "複数のアカウント・サービスのセキュリティ状況を、1 か所で確認したいとき"
+    attrs: {"種類": "一元管理", "対象": "各セキュリティサービスの検出結果"}
+    keywords: [セキュリティの一元管理, ベストプラクティスのチェック]
+
+  # ---------- アプリケーション統合 ----------
+  - id: sqs
+    name: Amazon SQS
+    short: Simple Queue Service
+    category: integration
+    icon: integration/simple-queue-service-sqs
+    summary: メッセージを一時的にためておくキュー。送る側と受け取る側を切り離し（疎結合）、処理を非同期にする。
+    use_when: "処理を切り離して非同期にし、急な負荷をためて順に処理したいとき"
+    attrs: {"配信のしかた": "キュー（受信側が取りに行く）", "特徴": "1 つのメッセージを 1 つの処理が受け取る"}
+    keywords: [疎結合, 非同期処理, バッファ, 標準キュー, FIFO キュー（順序保証）, デッドレターキュー]
+    compare: SQS は受信側が取りに行く（プル）。SNS は購読者に一斉に送る（プッシュ）。
+    tags: [頻出]
+  - id: sns
+    name: Amazon SNS
+    short: Simple Notification Service
+    category: integration
+    icon: integration/simple-notification-service-sns
+    summary: 1 つのメッセージを、メール・SMS・SQS・Lambda などの複数の購読者へ一斉にプッシュ配信する。
+    use_when: "1 つのイベントを、複数の宛先へ同時に通知・配信したいとき"
+    attrs: {"配信のしかた": "プッシュ（一斉配信）", "特徴": "1 つのメッセージを複数の購読者へ"}
+    keywords: [通知, プッシュ, ファンアウト（SNS + 複数の SQS）, パブリッシュ／サブスクライブ]
+    tags: [頻出]
+  - id: eventbridge
+    name: Amazon EventBridge
+    category: integration
+    icon: integration/eventbridge
+    summary: AWS サービスや SaaS のイベントを受け取り、ルールに合うものを Lambda などへ振り分けるイベントバス。スケジュール実行もできる。
+    use_when: "AWS サービスや SaaS のイベントに反応して処理を起動したい、定期実行したいとき"
+    attrs: {"配信のしかた": "イベントバス（ルールで振り分け）", "特徴": "AWS・SaaS のイベント、スケジュール"}
+    keywords: [イベント駆動, ルールでイベントを振り分け, cron のような定期実行, 旧 CloudWatch Events]
+  - id: step-functions
+    name: AWS Step Functions
+    category: integration
+    icon: integration/step-functions
+    summary: Lambda などの処理を、順番・分岐・リトライを含むワークフローとして組み立てて実行する。
+    use_when: "複数の処理を順番や条件分岐つきでつなぎ、失敗時のリトライも管理したいとき"
+    attrs: {"配信のしかた": "ワークフロー", "特徴": "順番・分岐・リトライを管理"}
+    keywords: [ワークフロー, 複数の Lambda をつなぐ, 状態管理, オーケストレーション]
+  - id: mq
+    name: Amazon MQ
+    category: integration
+    icon: integration/mq
+    summary: Apache ActiveMQ / RabbitMQ 互換のメッセージブローカー。
+    use_when: "ActiveMQ や RabbitMQ を使う既存のアプリを、書き換えずに移行したいとき"
+    attrs: {"配信のしかた": "メッセージブローカー", "特徴": "業界標準のプロトコル（AMQP・MQTT など）"}
+    keywords: [既存のメッセージブローカーを移行, MQTT, AMQP, JMS]
+    compare: 新規に作るなら SQS / SNS。既存のアプリを書き換えずに移行するなら Amazon MQ。
+
+  # ---------- マネジメント・ガバナンス ----------
+  - id: cloudwatch
+    name: Amazon CloudWatch
+    category: management
+    icon: management/cloudwatch
+    summary: AWS リソースやアプリのメトリクス・ログを収集し、グラフ表示やアラームによる通知・自動対応を行う。
+    use_when: "リソースの状態を監視し、しきい値を超えたら通知や自動対応をしたいとき"
+    attrs: {"分かること・できること": "性能のメトリクス・ログ", "試験での問われ方": "「CPU 使用率が高いときに通知したい」"}
+    keywords: [監視, メトリクス, アラーム, CloudWatch Logs, CPU 使用率]
+    compare: 「誰が何をしたか（API 操作）」の記録は CloudTrail。
+    tags: [頻出]
+  - id: cloudtrail
+    name: AWS CloudTrail
+    category: management
+    icon: management/cloudtrail
+    summary: AWS アカウントで「誰が・いつ・どの API を呼んだか」を記録する。監査に使う。
+    use_when: "誰がいつどんな操作をしたかを、監査・調査したいとき"
+    attrs: {"分かること・できること": "API 操作の履歴", "試験での問われ方": "「誰がリソースを削除したか調べたい」"}
+    keywords: [API 操作の記録, 監査ログ, 誰が削除したか]
+    tags: [頻出]
+  - id: config
+    name: AWS Config
+    category: management
+    icon: management/config
+    summary: AWS リソースの設定内容と変更履歴を記録し、ルールに違反した設定を検出する。
+    use_when: "リソースの設定変更を記録し、ルール違反を自動で検出したいとき"
+    attrs: {"分かること・できること": "設定の履歴・ルール評価", "試験での問われ方": "「設定がルールに準拠しているか確かめたい」"}
+    keywords: [設定変更の履歴, コンプライアンスの評価, 設定のルール違反を検出]
+  - id: cloudformation
+    name: AWS CloudFormation
+    category: management
+    icon: management/cloudformation
+    summary: テンプレート（JSON / YAML）にインフラ構成を書き、同じ環境を自動で何度でも構築できる（IaC）。
+    use_when: "同じ構成の環境を、手作業なしで何度でも作りたいとき"
+    attrs: {"分かること・できること": "インフラ構築の自動化", "試験での問われ方": "「同じ環境を別のリージョンにも作りたい」"}
+    keywords: [Infrastructure as Code, テンプレート, スタック, 同じ環境を再現]
+  - id: systems-manager
+    name: AWS Systems Manager
+    category: management
+    icon: management/systems-manager
+    summary: EC2 やオンプレミスのサーバーを一元管理する。パッチ適用・コマンド実行・SSH なしのログイン（Session Manager）などができる。
+    use_when: "多数のサーバーへのパッチ適用やコマンド実行を、一元化したいとき"
+    attrs: {"分かること・できること": "サーバーの運用管理", "試験での問われ方": "「SSH のポートを開けずにログインしたい」"}
+    keywords: [Session Manager, Patch Manager, Run Command, Parameter Store]
+  - id: organizations
+    name: AWS Organizations
+    category: management
+    icon: management/organizations
+    summary: 複数の AWS アカウントをまとめて管理する。一括請求や、SCP によるアカウント単位の権限制限ができる。
+    use_when: "複数アカウントの請求をまとめ、SCP で使えるサービスを制限したいとき"
+    attrs: {"分かること・できること": "複数アカウントの統制", "試験での問われ方": "「全アカウントで特定の操作を禁止したい」"}
+    keywords: [複数アカウントの管理, SCP（サービスコントロールポリシー）, 一括請求, OU]
+    tags: [頻出]
+  - id: control-tower
+    name: AWS Control Tower
+    category: management
+    icon: management/control-tower
+    summary: ベストプラクティスに沿ったマルチアカウント環境（ランディングゾーン）を自動で構築・統制する。
+    use_when: "マルチアカウント環境を、ガードレール付きで素早く作りたいとき"
+    attrs: {"分かること・できること": "マルチアカウント環境の構築", "試験での問われ方": "「ベストプラクティスに沿った環境を素早く」"}
+    keywords: [ランディングゾーン, マルチアカウントの初期設定, ガードレール]
+  - id: trusted-advisor
+    name: AWS Trusted Advisor
+    category: management
+    icon: management/trusted-advisor
+    summary: コスト・パフォーマンス・セキュリティ・耐障害性などの観点で、アカウントを点検して改善点を提案する。
+    use_when: "コストやセキュリティの改善点を、自動で洗い出したいとき"
+    attrs: {"分かること・できること": "改善点の提案", "試験での問われ方": "「使っていないリソースを見つけたい」"}
+    keywords: [ベストプラクティスの推奨事項, 使われていないリソース, サービスクォータ]
+
+  # ---------- 分析 ----------
+  - id: athena
+    name: Amazon Athena
+    category: analytics
+    icon: analytics/athena
+    summary: S3 にあるデータに、サーバーを用意せず直接 SQL でクエリを実行する。スキャンしたデータ量で課金される。
+    use_when: "S3 のログなどを、サーバーを用意せずに SQL でその場で分析したいとき"
+    attrs: {"処理のタイミング": "その都度（アドホック）", "主な役割": "S3 のデータを SQL で検索"}
+    keywords: [S3 のデータを SQL で分析, サーバーレス, アドホッククエリ]
+    tags: [頻出]
+  - id: kinesis-data-streams
+    name: Amazon Kinesis Data Streams
+    category: analytics
+    icon: analytics/kinesis-data-streams
+    summary: 大量のデータをリアルタイムに受け取り、複数のアプリで並行して処理できるようにするストリーミングサービス。
+    use_when: "大量のデータをリアルタイムに受け取り、独自の処理ですぐに分析したいとき"
+    attrs: {"処理のタイミング": "リアルタイム", "主な役割": "ストリームを受け取り複数の処理へ"}
+    keywords: [リアルタイム, ストリーミングデータ, クリックストリーム, IoT, シャード]
+  - id: data-firehose
+    name: Amazon Data Firehose
+    short: 旧 Kinesis Data Firehose
+    category: analytics
+    icon: analytics/kinesis-data-firehose
+    summary: ストリーミングデータを受け取り、S3・Redshift・OpenSearch などへ自動で配信する。
+    use_when: "ストリーミングデータを、管理なしで S3 や Redshift に貯めたいとき"
+    attrs: {"処理のタイミング": "ニアリアルタイム", "主な役割": "ストリームを保存先へ届ける"}
+    keywords: [ニアリアルタイム, S3 へ配信, 変換して保存, 管理不要]
+    compare: 自前の処理でリアルタイムに扱うなら Data Streams、保存先へ流すだけなら Firehose。
+  - id: glue
+    name: AWS Glue
+    category: analytics
+    icon: analytics/glue
+    summary: サーバーレスの ETL（抽出・変換・ロード）サービス。データカタログでデータの場所や形式を管理する。
+    use_when: "データを分析しやすい形に変換したい、データの所在をカタログ化したいとき"
+    attrs: {"処理のタイミング": "バッチ", "主な役割": "ETL・データカタログ"}
+    keywords: [ETL, データカタログ, クローラー, データ形式の変換]
+  - id: emr
+    name: Amazon EMR
+    category: analytics
+    icon: analytics/emr
+    summary: Apache Spark や Hadoop などのビッグデータ処理基盤を、クラスターとして簡単に用意する。
+    use_when: "Spark や Hadoop で大規模なデータ処理をしたい、既存の処理を移したいとき"
+    attrs: {"処理のタイミング": "バッチ（ストリームも可）", "主な役割": "Spark・Hadoop による大規模処理"}
+    keywords: [Hadoop, Spark, ビッグデータ処理]
+  - id: opensearch
+    name: Amazon OpenSearch Service
+    category: analytics
+    icon: analytics/amazon-opensearch-service
+    summary: 全文検索やログ分析のための OpenSearch（Elasticsearch 由来）をマネージドで提供する。
+    use_when: "サイト内検索や、ログの検索・可視化をしたいとき"
+    attrs: {"処理のタイミング": "ほぼリアルタイム", "主な役割": "全文検索・ログ分析"}
+    keywords: [全文検索, ログ分析, 可視化ダッシュボード]
+  - id: quicksight
+    name: Amazon QuickSight
+    category: analytics
+    icon: analytics/quicksight
+    summary: データを可視化するダッシュボードを作る BI サービス。
+    use_when: "分析結果をダッシュボードにして、社内で共有したいとき"
+    attrs: {"処理のタイミング": "随時", "主な役割": "可視化（BI）"}
+    keywords: [BI, ダッシュボード, 可視化]
+  - id: lake-formation
+    name: AWS Lake Formation
+    category: analytics
+    icon: analytics/lake-formation
+    summary: S3 上のデータレイクを素早く構築し、テーブル・列単位の細かいアクセス権を管理する。
+    use_when: "S3 のデータレイクに、テーブルや列単位のアクセス権を設定したいとき"
+    attrs: {"処理のタイミング": "—", "主な役割": "データレイクの構築・権限管理"}
+    keywords: [データレイク, 列レベルのアクセス制御]
+
+  # ---------- 移行・転送 ----------
+  - id: dms
+    name: AWS Database Migration Service
+    short: DMS
+    category: migration
+    icon: database/database-migration-service
+    summary: データベースを、移行中もソース側を動かしたまま AWS へ移行する。異なる DB エンジン間の移行もできる。
+    use_when: "停止時間を最小限にして、データベースを AWS へ移したいとき"
+    attrs: {"移すもの": "データベース", "方法": "オンライン（移行中も稼働）"}
+    keywords: [DB 移行, ダウンタイム最小, 継続的なレプリケーション, SCT（スキーマ変換）]
+  - id: datasync
+    name: AWS DataSync
+    category: migration
+    icon: migration/datasync
+    summary: オンプレミスのストレージと S3・EFS・FSx の間で、大量のファイルをオンラインで高速に転送・同期する。
+    use_when: "オンプレミスのファイルを、S3・EFS・FSx へ高速に転送・同期したいとき"
+    attrs: {"移すもの": "ファイル", "方法": "オンライン（ネットワーク経由）"}
+    keywords: [オンラインでのデータ転送, NFS / SMB から S3 へ, 定期的な同期]
+  - id: snow-family
+    name: AWS Snow Family
+    short: Snowball Edge など
+    category: migration
+    icon: storage/snowball-edge
+    summary: 物理デバイスを送ってもらい、データを入れて返送することで、ネットワークを使わずに大量データを AWS へ移す。
+    use_when: "回線では何週間もかかる量のデータを移したいとき"
+    attrs: {"移すもの": "大量のデータ", "方法": "オフライン（物理デバイスを配送）"}
+    keywords: [ペタバイト級の移行, 回線が遅い・ない, オフライン転送, エッジでの処理]
+  - id: transfer-family
+    name: AWS Transfer Family
+    category: migration
+    icon: migration/transfer-for-sftp
+    summary: SFTP / FTPS / FTP で、S3 や EFS にファイルを送受信できるようにする。
+    use_when: "取引先などが SFTP で送ってくるファイルを、S3 で受け取りたいとき"
+    attrs: {"移すもの": "ファイル", "方法": "SFTP・FTPS・FTP"}
+    keywords: [SFTP, 既存の FTP クライアントをそのまま使う]
+  - id: mgn
+    name: AWS Application Migration Service
+    short: MGN
+    category: migration
+    icon: migration/cloudendure-migration
+    summary: オンプレミスのサーバーを丸ごと AWS（EC2）へ移行する（リフト＆シフト）。
+    use_when: "オンプレミスのサーバーを、作り直さずにそのまま EC2 へ移したいとき"
+    attrs: {"移すもの": "サーバー丸ごと", "方法": "オンライン（複製し続けて切り替え）"}
+    keywords: [リホスト, リフト＆シフト, サーバーの移行]
+
+  # ---------- 機械学習 ----------
+  - id: sagemaker
+    name: Amazon SageMaker AI
+    category: ml
+    icon: ml/sagemaker
+    summary: 機械学習モデルの構築・学習・デプロイをまとめて行うプラットフォーム。
+    use_when: "既製の AI サービスでは足りず、独自のモデルを作って運用したいとき"
+    attrs: {"入力": "自分のデータ", "出力": "独自の機械学習モデル"}
+    keywords: [独自の機械学習モデル, 学習と推論]
+  - id: rekognition
+    name: Amazon Rekognition
+    category: ml
+    icon: ml/rekognition
+    summary: 画像や動画から、顔・物体・文字・不適切なコンテンツなどを検出する。
+    use_when: "画像や動画から、顔や物体を検出したいとき"
+    attrs: {"入力": "画像・動画", "出力": "顔・物体・ラベル"}
+    keywords: [画像認識, 顔認識, 動画分析]
+  - id: comprehend
+    name: Amazon Comprehend
+    category: ml
+    icon: ml/comprehend
+    summary: 文章からキーフレーズや感情（ポジティブ／ネガティブ）などを抽出する自然言語処理サービス。
+    use_when: "レビューや問い合わせの文章から、感情や話題を分析したいとき"
+    attrs: {"入力": "テキスト", "出力": "感情・キーフレーズ"}
+    keywords: [感情分析, 自然言語処理, テキスト分析]
+  - id: textract
+    name: Amazon Textract
+    category: ml
+    icon: ml/textract
+    summary: スキャンした書類や PDF から、文字・表・フォームの項目を抽出する。
+    use_when: "請求書や申込書から、文字や表を自動で読み取りたいとき"
+    attrs: {"入力": "書類（画像・PDF）", "出力": "テキスト・表・フォーム"}
+    keywords: [OCR, 書類からデータを抽出]
+  - id: transcribe
+    name: Amazon Transcribe
+    category: ml
+    icon: ml/transcribe
+    summary: 音声をテキストに変換する（文字起こし）。
+    use_when: "通話や会議の音声を、文字起こししたいとき"
+    attrs: {"入力": "音声", "出力": "テキスト"}
+    keywords: [音声認識, 文字起こし, コールセンターの通話]
+  - id: bedrock
+    name: Amazon Bedrock
+    category: ml
+    icon: ml/bedrock
+    summary: さまざまな企業の生成 AI の基盤モデルを、API から利用できるようにする。
+    use_when: "生成 AI を、自分のアプリに組み込みたいとき"
+    attrs: {"入力": "プロンプト（テキストなど）", "出力": "生成 AI の応答"}
+    keywords: [生成 AI, 基盤モデル]
+
+  # ---------- 開発者ツール ----------
+  - id: codepipeline
+    name: AWS CodePipeline
+    category: devtools
+    icon: devtools/codepipeline
+    summary: ソースの取得・ビルド・テスト・デプロイを自動でつなぐ CI/CD パイプラインを作る。
+    use_when: "コードの変更からデプロイまでを、自動でつなぎたいとき"
+    attrs: {"CI/CD での担当": "全体の流れ", "対象": "ソース → ビルド → デプロイ"}
+    keywords: [CI/CD, リリースの自動化]
+  - id: codebuild
+    name: AWS CodeBuild
+    category: devtools
+    icon: devtools/codebuild
+    summary: ソースコードのビルドとテストを実行するマネージドサービス。
+    use_when: "ビルドサーバーを持たずに、ビルドとテストを実行したいとき"
+    attrs: {"CI/CD での担当": "ビルド・テスト", "対象": "ソースコード"}
+    keywords: [ビルド, テストの自動実行]
+  - id: codedeploy
+    name: AWS CodeDeploy
+    category: devtools
+    icon: devtools/codedeploy
+    summary: EC2・オンプレミス・Lambda・ECS へのアプリのデプロイを自動化する。
+    use_when: "ブルー／グリーンなどの方式で、アプリを安全にデプロイしたいとき"
+    attrs: {"CI/CD での担当": "デプロイ", "対象": "EC2・オンプレミス・Lambda・ECS"}
+    keywords: [デプロイの自動化, ブルー／グリーンデプロイ, ローリングデプロイ]
+  - id: x-ray
+    name: AWS X-Ray
+    category: devtools
+    icon: devtools/x-ray
+    summary: 分散アプリのリクエストを追跡し、どこで遅延やエラーが起きているかを可視化する。
+    use_when: "マイクロサービスのどこで遅延やエラーが出ているかを調べたいとき"
+    attrs: {"CI/CD での担当": "運用時の分析", "対象": "分散アプリのリクエスト"}
+    keywords: [分散トレーシング, ボトルネックの特定, マイクロサービス]
