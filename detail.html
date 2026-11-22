@@ -23,7 +23,7 @@
 .crumbs .sep { color: var(--line); }
 
 .hero { display: grid; grid-template-columns: 72px 1fr; gap: 18px; padding-block: 26px 18px; align-items: start; }
-.hero .icon { width: 72px; height: 72px; border-radius: 10px; background: center / contain no-repeat; }
+.hero .icon { width: 72px; height: 72px; border-radius: 10px; background-position: center; background-size: contain; background-repeat: no-repeat; }
 .hero .titles { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .hero .cat {
   font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; color: var(--accent);
@@ -110,7 +110,7 @@
 }
 .sib:hover { border-color: var(--accent); }
 .sib[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); }
-.mini { width: 24px; height: 24px; border-radius: 5px; background: center / contain no-repeat; flex: none; }
+.mini { width: 24px; height: 24px; border-radius: 5px; background-position: center; background-size: contain; background-repeat: no-repeat; flex: none; }
 .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-block: 18px 36px; }
 .pager a {
   display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--fg);
