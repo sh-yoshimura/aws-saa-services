@@ -1,8 +1,8 @@
 # AWS 主要サービス一覧（SAA-C03 対策）のデータ
 #
-# ■ サービスを追加するには
+# ■ サービスを追加するには（詳細ページの本文は details/<id>.md に書く）
 #   1. 下の services: に 1 件追記する（どこに書いても、表示はカテゴリ順・この並び順になる）
-#   2. `uv run --with pyyaml python build.py` を実行する → index.html が作り直される
+#   2. `uv run --with pyyaml --with markdown python build.py` を実行する → dist/ のページが作り直される
 #
 # ■ 項目
 #   id        : 英小文字とハイフンの識別子（重複不可）

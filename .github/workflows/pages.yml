@@ -1,4 +1,4 @@
-# services.yaml などが変わったら index.html を作り直して GitHub Pages に公開する
+# services.yaml や details/ が変わったらページを作り直して GitHub Pages に公開する
 name: Build and deploy
 
 on:
@@ -23,13 +23,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pyyaml
+      - run: pip install pyyaml markdown
       - run: python build.py
-      - run: mkdir _site && cp index.html _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
 
   deploy:
     needs: build

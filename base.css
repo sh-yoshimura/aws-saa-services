@@ -1,0 +1,42 @@
+/* 一覧ページと詳細ページで共通の色・文字・余白 */
+:root {
+  --bg: #f3f6f7;
+  --surface: #ffffff;
+  --fg: #18242e;
+  --muted: #5a6a77;
+  --line: #d9e1e6;
+  --accent: #0d6b76;
+  --accent-soft: #e3f0f1;
+  --hot: #a8501c;
+  --hot-soft: #fbece2;
+  --font-display: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-body: "BIZ UDPGothic", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121a20; --surface: #1a252d; --fg: #e4ebef; --muted: #98a8b3; --line: #2c3a44;
+    --accent: #5cc3cd; --accent-soft: #1d3a40; --hot: #f0a374; --hot-soft: #3d2a1f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121a20; --surface: #1a252d; --fg: #e4ebef; --muted: #98a8b3; --line: #2c3a44;
+  --accent: #5cc3cd; --accent-soft: #1d3a40; --hot: #f0a374; --hot-soft: #3d2a1f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.7;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+a { color: var(--accent); }

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>{{TITLE}} · AWS サービス図鑑</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Kaku+Gothic+New:wght@700;900&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: 1 サービスの読み物ページ。上にパンくず、ヒーロー（アイコン・名前・要点）、本文、関連リンク */
+/*{{BASE_CSS}}*/
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.page { max-width: 860px; }
+
+.crumbs {
+  display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center;
+  padding-block: 14px; font-size: 13.5px; color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.crumbs a { color: var(--muted); text-decoration: none; }
+.crumbs a:hover { color: var(--accent); text-decoration: underline; }
+.crumbs .sep { color: var(--line); }
+
+.hero { display: grid; grid-template-columns: 72px 1fr; gap: 18px; padding-block: 26px 18px; align-items: start; }
+.hero .icon { width: 72px; height: 72px; border-radius: 10px; background: center / contain no-repeat; }
+.hero .titles { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.hero .cat {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; color: var(--accent);
+}
+.hero h1 {
+  font-family: var(--font-display); font-weight: 900; font-size: clamp(25px, 4.5vw, 34px);
+  line-height: 1.25; margin: 0; text-wrap: balance;
+}
+.hero .short { color: var(--muted); font-size: 14px; }
+.tag {
+  display: inline-block; font-size: 11px; font-weight: 700; color: var(--hot); background: var(--hot-soft);
+  border-radius: 4px; padding: 0 6px; letter-spacing: .04em; margin-left: 6px; vertical-align: 2px;
+}
+.lead { font-size: 17px; line-height: 1.75; margin: 0 0 16px; max-width: 62ch; }
+
+.facts {
+  display: grid; gap: 10px 18px; grid-template-columns: max-content 1fr;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; margin: 0 0 8px; font-size: 14px;
+}
+.facts dt { font-size: 12px; font-weight: 700; color: var(--muted); padding-top: 2px; }
+.facts dd { margin: 0; min-width: 0; }
+.kw { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.kw li {
+  font-size: 12.5px; line-height: 1.5; color: var(--accent); background: var(--accent-soft);
+  border-radius: 4px; padding: 1px 7px;
+}
+@media (max-width: 520px) {
+  .facts { grid-template-columns: 1fr; gap: 2px; }
+  .facts dd + dt { margin-top: 10px; }
+  .hero { grid-template-columns: 56px 1fr; gap: 14px; }
+  .hero .icon { width: 56px; height: 56px; }
+}
+
+/* ---- 本文（Markdown から生成） ---- */
+.article { padding-block: 8px 12px; }
+.article h2 {
+  font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.4;
+  margin: 34px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--fg); text-wrap: balance;
+}
+.article h3 { font-family: var(--font-display); font-weight: 700; font-size: 16px; margin: 22px 0 6px; }
+.article p, .article li { max-width: 68ch; }
+.article p { margin: 0 0 12px; }
+.article ul, .article ol { margin: 0 0 14px; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; }
+.article li::marker { color: var(--accent); }
+.article strong { background: linear-gradient(transparent 62%, var(--accent-soft) 62%); }
+.article code {
+  font-family: var(--font-mono); font-size: .88em; background: var(--accent-soft);
+  border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere;
+}
+.article blockquote {
+  margin: 0 0 14px; padding: 10px 14px; border-left: 3px solid var(--accent);
+  background: var(--surface); border-radius: 0 8px 8px 0;
+}
+.article blockquote p:last-child { margin-bottom: 0; }
+.table-scroll {
+  overflow-x: auto; margin: 0 0 16px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px;
+}
+.article table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 14px; line-height: 1.55; }
+.article th, .article td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.article tbody tr:last-child > * { border-bottom: 0; }
+.article thead th { font-size: 12px; color: var(--muted); background: var(--bg); white-space: nowrap; }
+.pending {
+  color: var(--muted); background: var(--surface); border: 1px dashed var(--line);
+  border-radius: 10px; padding: 14px 16px;
+}
+
+/* ---- 関連 ---- */
+.related { display: flex; flex-direction: column; gap: 26px; padding-block: 20px 8px; border-top: 1px solid var(--line); margin-top: 16px; }
+.related h2 { font-family: var(--font-display); font-weight: 700; font-size: 16px; margin: 0 0 10px; }
+.uc-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.uc-links a {
+  display: block; text-decoration: none; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
+}
+.uc-links a:hover { border-color: var(--accent); }
+.uc-links b { font-family: var(--font-display); display: block; }
+.uc-links span { font-size: 13px; color: var(--muted); }
+.siblings { display: flex; flex-wrap: wrap; gap: 6px; }
+.sib {
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px 3px 4px; font-size: 13px;
+}
+.sib:hover { border-color: var(--accent); }
+.sib[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); }
+.mini { width: 24px; height: 24px; border-radius: 5px; background: center / contain no-repeat; flex: none; }
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-block: 18px 36px; }
+.pager a {
+  display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; min-width: 0;
+}
+.pager a:hover { border-color: var(--accent); }
+.pager .dir { font-size: 12px; color: var(--muted); }
+.pager .next { text-align: right; grid-column: 2; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+footer { color: var(--muted); font-size: 12.5px; padding-block: 0 32px; }
+/*{{ICON_CSS}}*/
+</style>
+<body>
+<div class="wrap page">
+{{CONTENT}}
+<footer>アイコン：AWS Architecture Icons（diagrams ライブラリ同梱版）。仕様は変わることがあるため、細かい数値は公式ドキュメントで確認してください。</footer>
+</div>
+</body>
+</html>
