@@ -54,6 +54,7 @@ categories:
       - "1 台の EC2 のディスク → EBS、複数の Linux で共有 → EFS、Windows で共有 → FSx for Windows File Server。"
       - "大量のファイルを安く丈夫に → S3、めったに読まない長期保存 → S3 Glacier。"
       - "オンプレミスから AWS のストレージを使う → Storage Gateway。"
+      - "共有バケットのバケットポリシーが複雑になりすぎた → 用途ごとに S3 アクセスポイントを作る。"
   database:
     label: データベース
     columns: ["データモデル", "得意なこと"]
@@ -360,6 +361,16 @@ services:
     keywords: [オブジェクトストレージ, 静的コンテンツ, ストレージクラス, ライフサイクルポリシー, バージョニング, 署名付き URL]
     compare: ブロック（EBS）・ファイル（EFS）と違い、OS からディスクとしてはマウントしない。
     tags: [頻出]
+  - id: s3-access-points
+    name: Amazon S3 アクセスポイント
+    short: S3 Access Points
+    category: storage
+    icon: storage/s3-access-points
+    summary: 1 つの S3 バケットに、用途ごとの入口（アクセスポイント）を複数作り、それぞれに専用のポリシーとネットワークの制限を付ける機能。
+    use_when: "多くのアプリや部署が共有する S3 バケットのアクセス権を、入口ごとに分けて管理したいとき"
+    attrs: {"種類": "S3 の機能（バケットへの入口）", "主な使い方": "用途ごとにポリシー・VPC 限定などを分けてアクセスさせる"}
+    keywords: [共有データセット, アクセスポイントポリシー, VPC 限定のアクセスポイント, バケットポリシーの簡素化, マルチリージョンアクセスポイント]
+    compare: バケットポリシーは「バケットに 1 つ」、アクセスポイントは「用途ごとに何個でも」入口とポリシーを作れる。
   - id: s3-glacier
     name: Amazon S3 Glacier
     category: storage
