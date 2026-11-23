@@ -41,6 +41,7 @@ categories:
       - "サーバー管理を減らしたいほど EC2 → Elastic Beanstalk → Lambda の順に選ぶ。"
       - "「15 分を超える処理」なら Lambda は不可。EC2・Batch・コンテナを検討する。"
       - "「オンプレミスで AWS と同じサービスを」なら Outposts。"
+      - "複数の Lambda 関数で同じライブラリを使う → Lambda レイヤーにまとめる。"
   container:
     label: コンテナ
     columns: ["役割", "サーバー（ホスト）の管理"]
@@ -277,6 +278,16 @@ services:
     keywords: [サーバーレス, イベント駆動, 運用オーバーヘッド最小, 最大実行時間 15 分]
     compare: 15 分を超える長時間処理には向かない（ECS/Fargate や Batch を検討）。
     tags: [頻出]
+  - id: lambda-layers
+    name: AWS Lambda レイヤー
+    short: Lambda Layers
+    category: compute
+    icon: compute/lambda
+    summary: 複数の Lambda 関数で使う共通のライブラリ・コード・設定ファイルを、関数本体とは別のパッケージ（レイヤー）として配布する機能。
+    use_when: "複数の Lambda 関数で同じライブラリや共通コードを使い回し、デプロイするパッケージを小さくしたいとき"
+    attrs: {"自分で管理する範囲": "共通のライブラリ・コード", "課金": "追加料金なし"}
+    keywords: [共通ライブラリ, コードの再利用, デプロイパッケージの縮小, /opt, Lambda 拡張機能]
+    compare: レイヤーは zip 形式の関数で使う。コンテナイメージの関数では、ライブラリはイメージの中に入れる。
   - id: elastic-beanstalk
     name: AWS Elastic Beanstalk
     category: compute
