@@ -40,6 +40,25 @@ DOC_HEAD = (
 REQUIRED = ("id", "name", "category", "icon", "summary")
 
 
+class StrictLoader(yaml.SafeLoader):
+    """同じ項目が 1 つのサービスの中で二重に書かれていたら止める（後の値で黙って上書きされるのを防ぐ）。"""
+
+
+def _no_duplicate_keys(loader, node, deep=False):
+    seen = set()
+    for key_node, _ in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in seen:
+            raise yaml.constructor.ConstructorError(
+                None, None, f"項目 '{key}' が二重に書かれています（- id: の行が抜けていないか確認）", key_node.start_mark
+            )
+        seen.add(key)
+    return loader.construct_mapping(node, deep)
+
+
+StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_duplicate_keys)
+
+
 def diagrams_resources() -> Path | None:
     try:
         import diagrams
@@ -334,7 +353,7 @@ def detail_page(s: dict, cats: dict, services: list[dict], by_id: dict) -> str:
 
 
 def build(artifact: bool = False) -> None:
-    data = yaml.safe_load(DATA.read_text(encoding="utf-8"))
+    data = yaml.load(DATA.read_text(encoding="utf-8"), Loader=StrictLoader)
     cats = normalize_categories(data.get("categories"))
     errors = validate(data, cats)
     if errors:

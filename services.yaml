@@ -1041,6 +1041,7 @@ services:
     attrs: {"入力": "テキスト（SSML）", "出力": "音声（MP3 など）"}
     keywords: [テキスト読み上げ, 音声合成, TTS, SSML, レキシコン, スピーチマーク, ニューラル音声]
     compare: 反対に、音声をテキストにする（文字起こし）のは Amazon Transcribe。
+  - id: textract
     name: Amazon Textract
     category: ml
     icon: ml/textract
