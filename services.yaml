@@ -84,6 +84,29 @@ categories:
           - 社内の DNS サーバーは、VPC 内の名前の問い合わせをインバウンドエンドポイントの IP アドレスに転送する
           - VPC 内からの社内ドメインの問い合わせは、アウトバウンドエンドポイントと転送ルールで社内の DNS サーバーへ送る
           - 転送ルールは Resource Access Manager で他のアカウントの VPC と共有できる。名前解決のために DNS サーバーを EC2 で自作する必要はない
+      - title: サーバーレスな Web API を作る
+        need: スマホアプリ向けの API を、サーバーを管理せずに作りたい。ログインした利用者だけに使わせ、急なアクセス増にも耐えたい
+        flow:
+          - {label: スマホアプリの利用者, icon: general/users}
+          - {svc: api-gateway, note: 認証（Cognito）・スロットリング}
+          - {svc: lambda, note: 業務の処理}
+          - {svc: dynamodb, note: データを保存}
+        why:
+          - API Gateway のオーソライザーに Cognito ユーザープールを指定すると、ログインした利用者のトークンを確かめてから Lambda を呼ぶ
+          - すべてサーバーレスなので、アクセスが少ないときの料金は小さく、増えたときは自動でスケールする
+          - スロットリングで上限を超えたリクエストは 429 で断り、後ろの Lambda や DynamoDB を守る
+      - title: 時間のかかる処理を非同期で受け付ける
+        need: 動画の変換など数分かかる処理を API で受け付けたいが、API のタイムアウト（標準 29 秒）を超えてしまう
+        flow:
+          - {label: 利用者, icon: general/users}
+          - {svc: api-gateway, note: 受け付けてすぐ応答する}
+          - {svc: sqs, note: Lambda を挟まず直接送る（AWS サービス統合）}
+          - {svc: lambda, note: 後ろで順に処理する}
+          - {svc: s3, note: 結果を保存}
+        why:
+          - API Gateway は SQS にメッセージを入れた時点で応答を返すので、処理時間がタイムアウトに影響しない
+          - 処理の進み具合や結果は、別の API で問い合わせる（ポーリング）か、完了時に通知する
+          - 流れに順番や分岐があるなら、SQS の代わりに Step Functions の実行を開始する
   security:
     label: セキュリティ・ID・コンプライアンス
     columns: ["種類", "対象"]
@@ -619,7 +642,9 @@ services:
     summary: REST / HTTP / WebSocket API を作成・公開・管理する。Lambda と組み合わせてサーバーレス API を作れる。
     use_when: "Lambda などの処理を API として公開し、認証や流量制限をかけたいとき"
     attrs: {"役割": "API の窓口", "つなぐもの・対象": "利用者 → Lambda などのバックエンド"}
-    keywords: [API の公開, スロットリング, サーバーレス API]
+    keywords: [API の公開, REST API, HTTP API, WebSocket API, スロットリング, 使用量プラン, API キー, キャッシュ, Lambda オーソライザー, VPC リンク, プライベート API]
+    compare: Lambda を HTTP で呼ぶだけなら ALB や関数 URL でも可。認証・流量制限・API キー・キャッシュなどの API 管理が要るなら API Gateway。
+    tags: [頻出]
 
   # ---------- セキュリティ・ID・コンプライアンス ----------
   - id: iam
