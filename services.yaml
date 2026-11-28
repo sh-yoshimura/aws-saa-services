@@ -263,6 +263,19 @@ categories:
     points:
       - "既製の AI サービス（Rekognition・Textract など）で足りるならそれを使い、独自モデルが必要なら SageMaker AI。"
       - "入力と出力で覚える：画像 → Rekognition、書類 → Textract、音声 → Transcribe、文章 → Comprehend。"
+      - "音声とテキストは向きで覚える：音声 → テキストは Transcribe、テキスト → 音声は Polly。"
+    usecases:
+      - title: 問い合わせの音声を翻訳して読み上げる
+        need: 海外の利用者からの音声の問い合わせを日本語のテキストにし、日本語の回答を相手の言語の音声で返したい
+        flow:
+          - {label: 海外の利用者, icon: general/users}
+          - {svc: transcribe, note: 音声 → テキスト（文字起こし）}
+          - {label: Amazon Translate, icon: ml/translate, note: テキストを翻訳}
+          - {svc: polly, note: テキスト → 音声（読み上げ）}
+        why:
+          - 学習済みの AI サービスを組み合わせるだけで、モデルを作らずに音声の翻訳ができる
+          - 向きを取り違えない。音声をテキストにするのが Transcribe、テキストを音声にするのが Polly
+          - コールセンターなら Amazon Connect と組み合わせ、問い合わせの内容の分析には Comprehend を足す
   devtools:
     label: 開発者ツール
     columns: ["CI/CD での担当", "対象"]
@@ -1019,7 +1032,15 @@ services:
     use_when: "レビューや問い合わせの文章から、感情や話題を分析したいとき"
     attrs: {"入力": "テキスト", "出力": "感情・キーフレーズ"}
     keywords: [感情分析, 自然言語処理, テキスト分析]
-  - id: textract
+  - id: polly
+    name: Amazon Polly
+    category: ml
+    icon: ml/polly
+    summary: テキストを、人が話しているような自然な音声に変換する（音声合成）。多くの言語と声に対応している。
+    use_when: "記事の読み上げや音声案内など、テキストから音声を自動で作りたいとき"
+    attrs: {"入力": "テキスト（SSML）", "出力": "音声（MP3 など）"}
+    keywords: [テキスト読み上げ, 音声合成, TTS, SSML, レキシコン, スピーチマーク, ニューラル音声]
+    compare: 反対に、音声をテキストにする（文字起こし）のは Amazon Transcribe。
     name: Amazon Textract
     category: ml
     icon: ml/textract
